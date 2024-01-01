@@ -32,16 +32,7 @@ namespace Hikaria.NetworkQualityTracker.Features
             public bool ShowInPageLoadout { get; set; } = true;
 
             [FSDisplayName("显示内容")]
-            public List<NetworkQualityInfo> ShowInfo { get; set; } = new()
-            {
-                NetworkQualityInfo.Latency,
-                NetworkQualityInfo.NetworkJitter,
-                NetworkQualityInfo.PacketLoss,
-                NetworkQualityInfo.ToMasterLatency,
-                NetworkQualityInfo.ToMasterNetworkJitter,
-                NetworkQualityInfo.ToMasterPacketLoss
-            };
-
+            public List<NetworkQualityInfo> ShowQualityInfo { get => NetworkQualityUpdater.ShowQualityInfo; set => NetworkQualityUpdater.ShowQualityInfo = value; }
 
             [FSHeader("显示格式")]
             [FSDisplayName("延迟格式")]
@@ -259,14 +250,16 @@ namespace Hikaria.NetworkQualityTracker.Features
 
         public struct pToMasterNetworkQualityReport
         {
-            public pToMasterNetworkQualityReport(short toMasterLatency, short toMasterPacketLossRate)
+            public pToMasterNetworkQualityReport(short toMasterLatency, short toMasterNetworkJitter, short toMasterPacketLossRate)
             {
                 ToMasterLatency = toMasterLatency;
-                ToMasterPacketLossRate = toMasterPacketLossRate;
+                ToMasterPacketLoss = toMasterPacketLossRate;
+                ToMasterNetworkJitter = toMasterNetworkJitter;
             }
 
             public short ToMasterLatency;
-            public short ToMasterPacketLossRate;
+            public short ToMasterPacketLoss;
+            public short ToMasterNetworkJitter;
         }
 
         public struct pHeartbeatAck

@@ -1,9 +1,9 @@
 ﻿using GTFO.API;
 using SNetwork;
-using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
+using TheArchive.Utilities;
 using TMPro;
 using UnityEngine;
-using TheArchive.Utilities;
+using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 
 namespace Hikaria.NetworkQualityTracker.Managers;
 public class NetworkQualityManager
@@ -37,7 +37,7 @@ public class NetworkQualityManager
     {
         if (NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
         {
-            NetworkAPI.InvokeEvent(typeof(pToMasterNetworkQualityReport).FullName, quality.GetToMasterReport(), HeartbeatListeners, SNet_ChannelType.GameNonCritical);
+            NetworkAPI.InvokeEvent(typeof(pToMasterNetworkQualityReport).FullName, quality.GetToMasterReportData(), HeartbeatListeners, SNet_ChannelType.GameNonCritical);
         }
     }
 
@@ -53,7 +53,7 @@ public class NetworkQualityManager
         }
     }
 
-    public static bool IsMasterHasHeartbeat => HeartbeatListeners.Any(p => p.IsMaster) || SNet.IsMaster;
+    public static bool IsMasterHasHeartbeat => SNet.IsMaster || HeartbeatListeners.Any(p => p.IsMaster);
     public static List<SNet_Player> HeartbeatListeners { get; } = new List<SNet_Player>();
     public static Dictionary<ulong, NetworkQuality> NetworkQualityDataLookup { get; } = new Dictionary<ulong, NetworkQuality>();
     public static long CurrentTime => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -109,7 +109,7 @@ public class NetworkQuality
     public void ReceiveNetworkQualityReport(pToMasterNetworkQualityReport data)
     {
         ToMasterLatency = data.ToMasterLatency;
-        ToMasterPacketLossRate = data.ToMasterPacketLossRate;
+        ToMasterPacketLossRate = data.ToMasterPacketLoss;
     }
 
     public void SendHeartbeat()
@@ -139,9 +139,16 @@ public class NetworkQuality
         packetLossText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(SNet.IsMaster ? "Host" : $"{PacketLossRate}%")}</color>");
     }
 
-    public pToMasterNetworkQualityReport GetToMasterReport()
+    public void GetToMasterReport(out string toMasterLatencyText, out string toMasterJitterText, out string toMasterPacketLossText)
     {
-        return new(ToMasterLatency, ToMasterPacketLossRate);
+        toMasterLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{(SNet.IsMaster ? "Host" : $"{Latency}ms")}</color>");
+        toMasterJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{(SNet.IsMaster ? "Host" : $"{NetworkJitter}ms")}</color>");
+        toMasterPacketLossText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(SNet.IsMaster ? "Host" : $"{PacketLossRate}%")}</color>");
+    }
+
+    public pToMasterNetworkQualityReport GetToMasterReportData()
+    {
+        return new(ToMasterLatency, ToMasterNetworkJitter, ToMasterPacketLossRate);
     }
 
     private static string GetColorHexString(float min, float max, float value)
@@ -163,6 +170,7 @@ public class NetworkQuality
     public short Latency { get; private set; } = 0;
     public short NetworkJitter { get; private set; } = 0;
     public short ToMasterLatency { get; private set; } = 0;
+    public short ToMasterNetworkJitter { get; private set; } = 0;
     public short ToMasterPacketLossRate { get; private set; } = 0;
 
     private Dictionary<short, long> HeartbeatSendTimeLookup = new();
