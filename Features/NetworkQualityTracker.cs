@@ -73,6 +73,10 @@ namespace Hikaria.NetworkQualityTracker.Features
         public class ShowInfoSetting
         {
             [FSHeader("显示信息")]
+            [FSDisplayName("与本地连接提示语")]
+            public string ToLocalHint { get; set; } = "与本地连接质量";
+            [FSDisplayName("与主机连接提示语")]
+            public string ToMasterHint { get; set; } = "与主机连接质量";
             [FSDisplayName("显示到本地延迟")]
             public bool ShowToLocalLatency { get => NetworkQualityUpdater.ShowToLocalLatency; set => NetworkQualityUpdater.ShowToLocalLatency = value; }
             [FSDisplayName("显示到本地网络抖动")]

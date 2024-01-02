@@ -67,7 +67,7 @@ public class NetworkQualityUpdater : MonoBehaviour
                     {
                         data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
-                        sb.Append("与本地连接质量:\n");
+                        sb.Append($"{Settings.InfoSettings.ToLocalHint}\n");
 
                         if (ShowToLocalLatency)
                             sb.Append($"{toLocalLatencyText}\n");
@@ -79,7 +79,7 @@ public class NetworkQualityUpdater : MonoBehaviour
 
                     if (!SNet.IsMaster && AnyToMaster)
                     {
-                        sb.Append("与主机连接质量:\n");
+                        sb.Append($"{Settings.InfoSettings.ToMasterHint}\n");
 
                         if (ShowToMasterLatency)
                             sb.Append($"{toMasterLatencyText}\n");
