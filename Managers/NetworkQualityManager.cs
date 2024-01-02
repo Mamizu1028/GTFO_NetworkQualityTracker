@@ -8,18 +8,25 @@ using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 namespace Hikaria.NetworkQualityTracker.Managers;
 public class NetworkQualityManager
 {
-    public static void RegisterPlayer(SNet_Player player)
+    public static void RegisterListener(SNet_Player player)
     {
         NetworkQualityDataLookup.TryAdd(player.Lookup, new(player));
+        if (!player.IsLocal)
+        {
+            HeartbeatListeners.Add(player);
+        }
     }
 
-    public static void UnregisterPlayer(SNet_Player player)
+    public static void UnregisterListener(SNet_Player player)
     {
-        NetworkQualityDataLookup.Remove(player.Lookup);
         if (player.IsLocal)
         {
             NetworkQualityDataLookup.Clear();
+            HeartbeatListeners.Clear();
+            return;
         }
+        NetworkQualityDataLookup.Remove(player.Lookup);
+        HeartbeatListeners.Remove(player);
     }
 
     public static void SendHeartbeats()
@@ -41,6 +48,18 @@ public class NetworkQualityManager
         }
     }
 
+    public static void OnMasterChanged()
+    {
+        if (!IsMasterHasHeartbeat)
+        {
+            foreach (var data in NetworkQualityDataLookup.Values)
+            {
+                data.OnMasterChanged();
+            }
+        }
+    }
+
+
     public static short LocalToMasterLatency
     {
         get
@@ -54,23 +73,18 @@ public class NetworkQualityManager
     }
 
     public static bool IsMasterHasHeartbeat => SNet.IsMaster || HeartbeatListeners.Any(p => p.IsMaster);
-    public static List<SNet_Player> HeartbeatListeners { get; } = new List<SNet_Player>();
-    public static Dictionary<ulong, NetworkQuality> NetworkQualityDataLookup { get; } = new Dictionary<ulong, NetworkQuality>();
+    public static List<SNet_Player> HeartbeatListeners { get; } = new();
+    public static Dictionary<ulong, NetworkQualityData> NetworkQualityDataLookup { get; } = new();
     public static long CurrentTime => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-    public static int WatermarkOffsetX { get; set; }
-    public static int WatermarkOffsetY { get; set; }
-    public static int PageLoadoutOffsetX { get; set; }
-    public static int PageLoadoutOffsetY { get; set; }
-
-    public static TextMeshPro NetworkQualityText { get; set; }
-    public static Dictionary<int, TextMeshPro> PageLoadoutTextMeshes = new();
-    public static TextMeshPro WatermarkTextMeshPro => GuiManager.WatermarkLayer.m_watermark.m_watermarkText;
+    public static TextMeshPro WatermarkQualityTextMesh { get; set; }
+    public static Dictionary<int, TextMeshPro> PageLoadoutQualityTextMeshes = new();
+    public static TextMeshPro WatermarkTextPrefab => GuiManager.WatermarkLayer.m_watermark.m_watermarkText;
 }
 
-public class NetworkQuality
+public class NetworkQualityData
 {
-    public NetworkQuality(SNet_Player player) { Owner = player; }
+    public NetworkQualityData(SNet_Player player) { Owner = player; }
 
     public void ReceiveHeartbeat(pHeartbeat data)
     {
@@ -80,27 +94,20 @@ public class NetworkQuality
     public void ReceiveHeartbeatAck(pHeartbeatAck data)
     {
         var heartbeatIndex = data.Index;
-        Latency = (short)(Owner.IsLocal || Owner.IsBot || !NetworkQualityManager.IsMasterHasHeartbeat ? 0 : NetworkQualityManager.CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
-        if (Latency < MinLatency)
-        {
-            MinLatency = Latency;
-        }
-        if (Latency > MaxLatency)
-        {
-            MaxLatency = Latency;
-        }
-        NetworkJitter = (short)(MaxLatency - MinLatency);
-        if (LatencyHistory.Count >= HeartbeatResetCount)
+        ToLocalLatency = (short)(Owner.IsLocal || Owner.IsBot || !NetworkQualityManager.IsMasterHasHeartbeat ? 0 : NetworkQualityManager.CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
+        if (LatencyHistory.Count >= LatencyQueueMaxCap)
         {
             LatencyHistory.Dequeue();
         }
-        LatencyHistory.Enqueue(Latency);
+        LatencyHistory.Enqueue(ToLocalLatency);
+        ToLocalNetworkJitter = (short)(LatencyHistory.Max() - LatencyHistory.Min());
         if (heartbeatIndex > LastReceivedHeartbeatAckIndex + 1)
         {
             PacketLoss += (short)(heartbeatIndex - LastReceivedHeartbeatAckIndex - 1);
         }
         LastReceivedHeartbeatAckIndex = heartbeatIndex;
-        if (heartbeatIndex > HeartbeatResetCount)
+        CheckToMasterQuality();
+        if (heartbeatIndex > LatencyQueueMaxCap)
         {
             Reset();
         }
@@ -126,24 +133,50 @@ public class NetworkQuality
 
     public void Reset()
     {
-        MaxLatency = 0;
-        MinLatency = short.MaxValue;
         HeartbeatSendIndex = 0;
         PacketLoss = 0;
     }
 
-    public void GetReport(out string latencyText, out string jitterText, out string packetLossText)
+    public void OnMasterChanged()
     {
-        latencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{(SNet.IsMaster ? "Host" : $"{Latency}ms")}</color>");
-        jitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{(SNet.IsMaster ? "Host" : $"{NetworkJitter}ms")}</color>");
-        packetLossText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(SNet.IsMaster ? "Host" : $"{PacketLossRate}%")}</color>");
+        ToMasterLatency = 0;
+        ToMasterPacketLossRate = 0;
+        ToMasterNetworkJitter = 0;
     }
 
-    public void GetToMasterReport(out string toMasterLatencyText, out string toMasterJitterText, out string toMasterPacketLossText)
+    public void CheckToMasterQuality()
     {
-        toMasterLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{(SNet.IsMaster ? "Host" : $"{Latency}ms")}</color>");
-        toMasterJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{(SNet.IsMaster ? "Host" : $"{NetworkJitter}ms")}</color>");
-        toMasterPacketLossText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(SNet.IsMaster ? "Host" : $"{PacketLossRate}%")}</color>");
+        if (!NetworkQualityManager.IsMasterHasHeartbeat)
+            return;
+        if (Owner.IsLocal)
+        {
+            if (SNet.IsMaster)
+            {
+                ToMasterLatency = 0;
+                ToMasterNetworkJitter = 0;
+                ToMasterPacketLossRate = 0;
+            }
+            else if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var quality))
+            {
+                ToMasterLatency = quality.ToLocalLatency;
+                ToMasterNetworkJitter = quality.ToLocalNetworkJitter;
+                ToMasterPacketLossRate = quality.ToLocalPacketLossRate;
+            }
+        }
+    }
+
+    public void GetToLocalReportText(out string toLocalLatencyText, out string toLocalJitterText, out string toLocalPacketLossRateText)
+    {
+        toLocalLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{($"{ToLocalLatency}ms")}</color>");
+        toLocalJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{($"{ToLocalNetworkJitter}ms")}</color>");
+        toLocalPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{($"{ToLocalPacketLossRate}%")}</color>");
+    }
+
+    public void GetToMasterReportText(out string toMasterLatencyText, out string toMasterJitterText, out string toMasterPacketLossRateText)
+    {
+        toMasterLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{(NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterLatency}ms")}</color>");
+        toMasterJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{(NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterNetworkJitter}ms")}</color>");
+        toMasterPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterPacketLossRate}%")}</color>");
     }
 
     public pToMasterNetworkQualityReport GetToMasterReportData()
@@ -159,23 +192,21 @@ public class NetworkQuality
         return Color.Lerp(green, red, t).ToHexString();
     }
 
-    public string LatencyColorHexString => GetColorHexString(60, 150, Latency);
-    public string NetworkJitterColorHexString => GetColorHexString(20, 100, NetworkJitter);
-    public string PacketLossColorHexString => GetColorHexString(0, 5, PacketLossRate);
+    public string LatencyColorHexString => GetColorHexString(60, 150, ToLocalLatency);
+    public string NetworkJitterColorHexString => GetColorHexString(20, 100, ToLocalNetworkJitter);
+    public string PacketLossColorHexString => GetColorHexString(0, 5, ToLocalPacketLossRate);
     public SNet_Player Owner { get; private set; }
-    public Queue<short> LatencyHistory { get; private set; } = new(HeartbeatResetCount);
+    public Queue<short> LatencyHistory { get; private set; } = new(LatencyQueueMaxCap);
     public short HeartbeatSendIndex { get; private set; } = 0;
-    public short PacketLossRate => (short)(HeartbeatSendIndex == 0 ? 0 : (PacketLoss / HeartbeatSendIndex * 100f));
+    public short ToLocalPacketLossRate => (short)(HeartbeatSendIndex == 0 ? 0 : (PacketLoss / HeartbeatSendIndex * 100f));
     public short PacketLoss { get; private set; } = 0;
-    public short Latency { get; private set; } = 0;
-    public short NetworkJitter { get; private set; } = 0;
+    public short ToLocalLatency { get; private set; } = 0;
+    public short ToLocalNetworkJitter { get; private set; } = 0;
     public short ToMasterLatency { get; private set; } = 0;
     public short ToMasterNetworkJitter { get; private set; } = 0;
     public short ToMasterPacketLossRate { get; private set; } = 0;
 
     private Dictionary<short, long> HeartbeatSendTimeLookup = new();
-    private short MinLatency = short.MaxValue;
-    private short MaxLatency = 0;
     private short LastReceivedHeartbeatAckIndex = 0;
-    private const short HeartbeatResetCount = 50;
+    private const short LatencyQueueMaxCap = 50;
 }

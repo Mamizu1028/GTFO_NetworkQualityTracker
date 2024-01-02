@@ -1,9 +1,13 @@
-﻿using BepInEx.Unity.IL2CPP;
+﻿using BepInEx;
+using BepInEx.Unity.IL2CPP;
 using TheArchive;
 using TheArchive.Core;
 
 namespace Hikaria.NetworkQualityTracker;
 
+[BepInDependency("dev.gtfomodding.gtfo-api", BepInDependency.DependencyFlags.HardDependency)]
+[BepInDependency(ArchiveMod.GUID, BepInDependency.DependencyFlags.HardDependency)]
+[BepInPlugin(PluginInfo.GUID, PluginInfo.NAME, PluginInfo.VERSION)]
 public class EntryPoint : BasePlugin, IArchiveModule
 {
     public override void Load()
@@ -33,9 +37,9 @@ public class EntryPoint : BasePlugin, IArchiveModule
 
     public static EntryPoint Instance { get; private set; }
 
-    public bool ApplyHarmonyPatches => throw new NotImplementedException();
+    public bool ApplyHarmonyPatches => false;
 
-    public bool UsesLegacyPatches => throw new NotImplementedException();
+    public bool UsesLegacyPatches => false;
 
-    public ArchiveLegacyPatcher Patcher { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public ArchiveLegacyPatcher Patcher { get; set; }
 }

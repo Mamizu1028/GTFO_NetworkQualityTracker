@@ -53,11 +53,11 @@ namespace Hikaria.NetworkQualityTracker.Features
             [FSDescription("单位: 像素")]
             public int WatermarkOffsetX
             {
-                get => NetworkQualityManager.WatermarkOffsetX;
+                get => s_WatermarkOffsetX;
                 set
                 {
-                    NetworkQualityManager.WatermarkOffsetX = value;
-                    UpdatePostion(true, false);
+                    s_WatermarkOffsetX = value;
+                    PositionNeedUpdate = true;
                 }
             }
 
@@ -65,11 +65,11 @@ namespace Hikaria.NetworkQualityTracker.Features
             [FSDescription("单位: 像素")]
             public int WatermarkOffsetY
             {
-                get => NetworkQualityManager.WatermarkOffsetY;
+                get => s_WatermarkOffsetY;
                 set
                 {
-                    NetworkQualityManager.WatermarkOffsetY = value;
-                    UpdatePostion(true, false);
+                    s_WatermarkOffsetY = value;
+                    PositionNeedUpdate = true;
                 }
             }
 
@@ -78,28 +78,46 @@ namespace Hikaria.NetworkQualityTracker.Features
             [FSDescription("单位: 像素")]
             public int PageLoadoutOffsetX
             {
-                get => NetworkQualityManager.PageLoadoutOffsetX;
+                get => s_PageLoadoutOffsetX;
                 set
                 {
-                    NetworkQualityManager.PageLoadoutOffsetX = value;
-                    UpdatePostion(false, true);
+                    s_PageLoadoutOffsetX = value;
+                    PositionNeedUpdate = true;
                 }
             }
             [FSDisplayName("纵向向偏移量")]
             [FSDescription("单位: 像素")]
             public int PageLoadoutOffsetY
             {
-                get => NetworkQualityManager.PageLoadoutOffsetY;
+                get => s_PageLoadoutOffsetY;
                 set
                 {
-                    NetworkQualityManager.PageLoadoutOffsetY = value;
-                    UpdatePostion(false, true);
+                    s_PageLoadoutOffsetY = value;
+                    PositionNeedUpdate = true;
                 }
             }
         }
+
+        public static int s_WatermarkOffsetX { get; set; } = 0;
+        public static int s_WatermarkOffsetY { get; set; } = 0;
+        public static int s_PageLoadoutOffsetX { get; set; } = 0;
+        public static int s_PageLoadoutOffsetY { get; set; } = 0;
         #endregion
 
         #region FeatureHooks
+        [ArchivePatch(typeof(SNet_Core_STEAM), nameof(SNet_Core_STEAM.CreateLocalPlayer))]
+        private class SNet_Core_STEAM__CreateLocalPlayer__Patch
+        {
+            private static bool IsSetup;
+            private static void Postfix()
+            {
+                if (!IsSetup)
+                {
+                    NetworkQualityUpdater.StartCoroutine();
+                    IsSetup = true;
+                }
+            }
+        }
 
         [ArchivePatch(typeof(PUI_Watermark), nameof(PUI_Watermark.UpdateWatermark))]
         private class PUI_Watermark__UpdateWatermark__Patch
@@ -110,13 +128,25 @@ namespace Hikaria.NetworkQualityTracker.Features
             {
                 if (!IsSetup)
                 {
-                    NetworkQualityText = GameObject.Instantiate(WatermarkTextMeshPro);
-                    NetworkQualityText.transform.SetParent(WatermarkTextMeshPro.transform.parent, false);
-                    NetworkQualityText.transform.localPosition = new Vector3(0f, 17.5f);
-                    NetworkQualityText.SetText("");
-                    NetworkQualityText.color = new(0.7075f, 0.7075f, 0.7075f, 0.4706f);
-                    NetworkQualityText.ForceMeshUpdate();
+                    WatermarkQualityTextMesh = GameObject.Instantiate(WatermarkTextPrefab);
+                    WatermarkQualityTextMesh.transform.SetParent(WatermarkTextPrefab.transform.parent, false);
+                    WatermarkQualityTextMesh.transform.localPosition = new Vector3(0f, 17.5f);
+                    WatermarkQualityTextMesh.SetText("");
+                    WatermarkQualityTextMesh.color = new(0.7075f, 0.7075f, 0.7075f, 0.4706f);
+                    WatermarkQualityTextMesh.ForceMeshUpdate();
+                    IsSetup = true;
+                }
+            }
+        }
 
+        [ArchivePatch(typeof(CM_PageRundown_New), nameof(CM_PageRundown_New.Setup))]
+        private class CM_PageRundown_New__Setup__Patch
+        {
+            private static bool IsSetup;
+            private static void Postfix()
+            {
+                if (!IsSetup)
+                {
                     GameObject go = new GameObject("NetworkQualityUpdater");
                     GameObject.DontDestroyOnLoad(go);
                     go.AddComponent<NetworkQualityUpdater>();
@@ -125,23 +155,15 @@ namespace Hikaria.NetworkQualityTracker.Features
             }
         }
 
+
         [ArchivePatch(typeof(CM_PlayerLobbyBar), nameof(CM_PlayerLobbyBar.SetHasPlayer))]
         private class CM_PlayerLobbyBar__SetHasPlayer__Patch
         {
             private static void Postfix(CM_PlayerLobbyBar __instance)
             {
-                int index = __instance.PlayerSlotIndex;
-                if (!PageLoadoutTextMeshes.ContainsKey(index))
-                {
-                    var textMesh = GameObject.Instantiate(__instance.m_nickText);
-                    textMesh.transform.SetParent(__instance.m_hasPlayerRoot.transform, false);
-                    textMesh.transform.localPosition.Set(0f, -0f, 0f);
-                    textMesh.fontStyle = FontStyles.Normal;
-                    PageLoadoutTextMeshes[index] = textMesh;
-                }
                 /*
                 var player = __instance.m_player;
-                if (player == null || player.IsBot || !NetworkQuality.IsMasterHasHeartbeat)
+                if (player == null || player.IsBot || !NetworkQualityData.IsMasterHasHeartbeat)
                     pair.transform.gameObject.SetActive(false);
                 else
                     pair.transform.gameObject.SetActive(!player.IsLocal);
@@ -155,24 +177,21 @@ namespace Hikaria.NetworkQualityTracker.Features
             private static void Postfix()
             {
                 SNet_Events.OnPlayerEvent += new Action<SNet_Player, SNet_PlayerEvent, SNet_PlayerEventReason>(OnPlayerEvent);
+                SNet_Events.OnMasterChanged += new Action(OnMasterChanged);
             }
         }
 
-        private static void UpdatePostion(bool watermark, bool pageLoadout)
+        public static void UpdatePostion()
         {
-            if (watermark)
-            {
-                WatermarkTextMeshPro.transform.localPosition = new Vector3(WatermarkOffsetX, 17.5f + WatermarkOffsetY);
-            }
+            WatermarkQualityTextMesh.transform.localPosition = new Vector3(s_WatermarkOffsetX, 17.5f + s_WatermarkOffsetY);
 
-            if (pageLoadout)
+            foreach (var textMesh in PageLoadoutQualityTextMeshes.Values)
             {
-                foreach (var textMesh in PageLoadoutTextMeshes.Values)
-                {
-                    textMesh.transform.localPosition = new(PageLoadoutOffsetX, PageLoadoutOffsetY);
-                }
+                textMesh.transform.localPosition = new(s_PageLoadoutOffsetX, s_PageLoadoutOffsetY);
             }
         }
+
+        public static bool PositionNeedUpdate;
 
         private static void OnPlayerEvent(SNet_Player player, SNet_PlayerEvent playerEvent, SNet_PlayerEventReason reason)
         {
@@ -181,10 +200,11 @@ namespace Hikaria.NetworkQualityTracker.Features
             {
                 case SNet_PlayerEvent.PlayerLeftSessionHub:
                 case SNet_PlayerEvent.PlayerAgentDeSpawned:
-                    NetworkQualityManager.UnregisterPlayer(player);
+                    UnregisterListener(player);
                     break;
                 case SNet_PlayerEvent.PlayerAgentSpawned:
-                    NetworkQualityManager.RegisterPlayer(player);
+                    if (player.IsLocal)
+                        RegisterListener(player);
                     break;
             }
         }
@@ -221,9 +241,9 @@ namespace Hikaria.NetworkQualityTracker.Features
 
         private static void OnReceiveBroadcastListenHeartbeat(ulong senderID, pBroadcastListenHeartbeat data)
         {
-            if (!NetworkQualityManager.HeartbeatListeners.Any(p => p.Lookup == senderID) && SNet.TryGetPlayer(senderID, out var player))
+            if (SNet.TryGetPlayer(senderID, out var player))
             {
-                NetworkQualityManager.HeartbeatListeners.Add(player);
+                NetworkQualityManager.RegisterListener(player);
             }
         }
 
@@ -275,9 +295,9 @@ namespace Hikaria.NetworkQualityTracker.Features
 
         public enum NetworkQualityInfo
         {
-            Latency,
-            PacketLoss,
-            NetworkJitter,
+            ToLocalLatency,
+            ToLocalPacketLoss,
+            ToLocalNetworkJitter,
             ToMasterLatency,
             ToMasterPacketLoss,
             ToMasterNetworkJitter
