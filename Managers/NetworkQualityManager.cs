@@ -93,7 +93,12 @@ public class NetworkQualityData
             LatencyHistory.Dequeue();
         }
         LatencyHistory.Enqueue(ToLocalLatency);
-        ToLocalNetworkJitter = (short)(LatencyHistory.Max() - LatencyHistory.Min());
+        if (NetworkJitterQueue.Count >= NetworkJitterQueueMaxCap)
+        {
+            NetworkJitterQueue.Dequeue();
+        }
+        NetworkJitterQueue.Enqueue(ToLocalLatency);
+        ToLocalNetworkJitter = (short)(NetworkJitterQueue.Max() - NetworkJitterQueue.Min());
         if (heartbeatIndex > LastReceivedHeartbeatAckIndex + 1)
         {
             PacketLoss += (short)(heartbeatIndex - LastReceivedHeartbeatAckIndex - 1);
@@ -141,7 +146,7 @@ public class NetworkQualityData
     {
         if (!NetworkQualityManager.IsMasterHasHeartbeat)
             return;
-        if (Owner.IsLocal)
+        if (Owner.IsMaster)
         {
             if (SNet.IsMaster)
             {
@@ -149,27 +154,27 @@ public class NetworkQualityData
                 ToMasterNetworkJitter = 0;
                 ToMasterPacketLossRate = 0;
             }
-            else if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var quality))
+            else if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
             {
-                ToMasterLatency = quality.ToLocalLatency;
-                ToMasterNetworkJitter = quality.ToLocalNetworkJitter;
-                ToMasterPacketLossRate = quality.ToLocalPacketLossRate;
+                quality.ToMasterLatency = ToLocalLatency;
+                quality.ToMasterNetworkJitter = ToLocalNetworkJitter;
+                quality.ToMasterPacketLossRate = ToLocalPacketLossRate;
             }
         }
     }
 
     public void GetToLocalReportText(out string toLocalLatencyText, out string toLocalJitterText, out string toLocalPacketLossRateText)
     {
-        toLocalLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{$"{ToLocalLatency}ms"}</color>");
-        toLocalJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{$"{ToLocalNetworkJitter}ms"}</color>");
-        toLocalPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{$"{ToLocalPacketLossRate}%"}</color>");
+        toLocalLatencyText = string.Format(Settings.LatencyFormat, $"<{ToLocalLatencyColorHexString}>{$"{ToLocalLatency}ms"}</color>");
+        toLocalJitterText = string.Format(Settings.NetworkJitterFormat, $"<{ToLocalNetworkJitterColorHexString}>{$"{ToLocalNetworkJitter}ms"}</color>");
+        toLocalPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{ToLocalPacketLossColorHexString}>{$"{ToLocalPacketLossRate}%"}</color>");
     }
 
     public void GetToMasterReportText(out string toMasterLatencyText, out string toMasterJitterText, out string toMasterPacketLossRateText)
     {
-        toMasterLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterLatency}ms")}</color>");
-        toMasterJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterNetworkJitter}ms")}</color>");
-        toMasterPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterPacketLossRate}%")}</color>");
+        toMasterLatencyText = string.Format(Settings.LatencyFormat, $"<{ToMasterLatencyColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterLatency}ms")}</color>");
+        toMasterJitterText = string.Format(Settings.NetworkJitterFormat, $"<{ToMasterNetworkJitterColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterNetworkJitter}ms")}</color>");
+        toMasterPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{ToMasterPacketLossColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterPacketLossRate}%")}</color>");
     }
 
     public pToMasterNetworkQualityReport GetToMasterReportData()
@@ -185,11 +190,17 @@ public class NetworkQualityData
         return Color.Lerp(green, red, t).ToHexString();
     }
 
-    public string LatencyColorHexString => GetColorHexString(60, 150, ToLocalLatency);
-    public string NetworkJitterColorHexString => GetColorHexString(20, 100, ToLocalNetworkJitter);
-    public string PacketLossColorHexString => GetColorHexString(0, 5, ToLocalPacketLossRate);
+    public string ToLocalLatencyColorHexString => GetColorHexString(60, 150, ToLocalLatency);
+    public string ToLocalNetworkJitterColorHexString => GetColorHexString(20, 100, ToLocalNetworkJitter);
+    public string ToLocalPacketLossColorHexString => GetColorHexString(0, 5, ToLocalPacketLossRate);
+
+    public string ToMasterLatencyColorHexString => GetColorHexString(60, 150, ToMasterLatency);
+    public string ToMasterNetworkJitterColorHexString => GetColorHexString(20, 100, ToMasterNetworkJitter);
+    public string ToMasterPacketLossColorHexString => GetColorHexString(0, 5, ToMasterPacketLossRate);
+
     public SNet_Player Owner { get; private set; }
     public Queue<short> LatencyHistory { get; private set; } = new(LatencyQueueMaxCap);
+    public Queue<short> NetworkJitterQueue { get; private set; } = new(NetworkJitterQueueMaxCap);
     public short HeartbeatSendIndex { get; private set; } = 0;
     public short ToLocalPacketLossRate => (short)(HeartbeatSendIndex == 0 ? 0 : (PacketLoss / HeartbeatSendIndex * 100f));
     public short PacketLoss { get; private set; } = 0;
@@ -202,4 +213,5 @@ public class NetworkQualityData
     private Dictionary<short, long> HeartbeatSendTimeLookup = new();
     private short LastReceivedHeartbeatAckIndex = 0;
     private const short LatencyQueueMaxCap = 50;
+    private const short NetworkJitterQueueMaxCap = 20;
 }

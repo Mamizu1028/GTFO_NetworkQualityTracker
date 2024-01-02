@@ -131,7 +131,7 @@ namespace Hikaria.NetworkQualityTracker.Features
                     s_PageLoadoutOffsetX = value;
                     foreach (var textMesh in PageLoadoutQualityTextMeshes.Values)
                     {
-                        textMesh.transform.localPosition = new(1050f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY);
+                        textMesh.transform.localPosition = new(1525f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY);
                     }
                 }
             }
@@ -145,7 +145,7 @@ namespace Hikaria.NetworkQualityTracker.Features
                     s_PageLoadoutOffsetY = value;
                     foreach (var textMesh in PageLoadoutQualityTextMeshes.Values)
                     {
-                        textMesh.transform.localPosition = new(1050f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY);
+                        textMesh.transform.localPosition = new(1525f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY);
                     }
                 }
             }
@@ -188,6 +188,8 @@ namespace Hikaria.NetworkQualityTracker.Features
                     WatermarkQualityTextMesh.transform.localPosition = new Vector3(s_WatermarkOffsetX, 17.5f + s_WatermarkOffsetY);
                     WatermarkQualityTextMesh.SetText("");
                     WatermarkQualityTextMesh.color = new(0.7075f, 0.7075f, 0.7075f, 0.4706f);
+                    WatermarkQualityTextMesh.fontStyle &= ~FontStyles.UpperCase;
+                    WatermarkQualityTextMesh.rectTransform.sizeDelta = new(1000, WatermarkQualityTextMesh.rectTransform.sizeDelta.y);
                     WatermarkQualityTextMesh.ForceMeshUpdate();
 
                     foreach (var bar in CM_PageLoadout.Current.m_playerLobbyBars)
@@ -196,11 +198,11 @@ namespace Hikaria.NetworkQualityTracker.Features
                         if (!PageLoadoutQualityTextMeshes.ContainsKey(index))
                         {
                             var textMesh = UnityEngine.Object.Instantiate(WatermarkTextPrefab, bar.m_hasPlayerRoot.transform, false);
-                            textMesh.transform.localPosition = new(1050f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY, 0);
+                            textMesh.transform.localPosition = new(1525f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY, 0);
                             textMesh.fontStyle &= ~FontStyles.UpperCase;
                             textMesh.alignment = TextAlignmentOptions.TopLeft;
                             textMesh.fontSize = 25;
-                            textMesh.rectTransform.sizeDelta = new(500, textMesh.rectTransform.sizeDelta.y);
+                            textMesh.rectTransform.sizeDelta = new(1000, textMesh.rectTransform.sizeDelta.y);
                             textMesh.color = new(1f, 1f, 1f, 0.7059f);
                             textMesh.SetText("");
                             PageLoadoutQualityTextMeshes[index] = textMesh;

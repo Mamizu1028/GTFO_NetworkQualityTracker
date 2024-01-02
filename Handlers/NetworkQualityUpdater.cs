@@ -4,7 +4,6 @@ using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
 using System.Collections;
 using System.Text;
-using TheArchive.Utilities;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 
@@ -77,7 +76,7 @@ public class NetworkQualityUpdater : MonoBehaviour
                             sb.Append($"{toLocalPacketLossRateText}\n");
                     }
 
-                    if (!SNet.IsMaster && AnyToMaster)
+                    if (!SNet.IsMaster && !data.Owner.IsMaster && AnyToMaster)
                     {
                         sb.Append($"{Settings.InfoSettings.ToMasterHint}\n");
 
@@ -112,7 +111,7 @@ public class NetworkQualityUpdater : MonoBehaviour
         var yielder = new WaitForSecondsRealtime(ToMasterQualityReportSendInterval);
         while (true)
         {
-            if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
+            if (!SNet.IsMaster && NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
             {
                 NetworkAPI.InvokeEvent(typeof(pToMasterNetworkQualityReport).FullName, quality.GetToMasterReportData(), NetworkQualityManager.HeartbeatListeners, SNet_ChannelType.GameNonCritical);
             }
