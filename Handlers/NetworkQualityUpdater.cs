@@ -64,14 +64,14 @@ public class NetworkQualityUpdater : MonoBehaviour
                 data.GetToMasterReportText(out var toMasterLatencyText, out var toMasterJitterText, out var toMasterPacketLossRateText);
                 if (data.Owner.IsLocal)
                 {
-                    if (NetworkQualityManager.WatermarkQualityTextMesh != null)
+                    if (NetworkQualityManager.WatermarkQualityTextMesh != null && s_ShowInWatermark)
                     {
                         NetworkQualityManager.WatermarkQualityTextMesh.SetText($"{toMasterLatencyText}, {toMasterJitterText}, {toMasterPacketLossRateText}");
                         NetworkQualityManager.WatermarkQualityTextMesh.ForceMeshUpdate();
                         yield return fixedUpdateYielder;
                     }
                 }
-                if (NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(data.Owner.PlayerSlotIndex(), out var textMesh))
+                if (NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(data.Owner.PlayerSlotIndex(), out var textMesh) && s_ShowInPageLoadout)
                 {
                     data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
@@ -90,7 +90,7 @@ public class NetworkQualityUpdater : MonoBehaviour
                             sb.Append($"{toLocalPacketLossRateText}\n");
                     }
 
-                    if (SNet.IsMaster)
+                    if (!SNet.IsMaster)
                     {
                         if (AnyToMaster)
                         {
