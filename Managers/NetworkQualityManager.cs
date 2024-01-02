@@ -27,12 +27,18 @@ public class NetworkQualityManager
         {
             return;
         }
+        if (PageLoadoutQualityTextMeshes.TryGetValue(player.PlayerSlotIndex(), out var text))
+        {
+            text.SetText(string.Empty);
+            text.ForceMeshUpdate();
+        }
         if (player.IsLocal)
         {
             NetworkQualityDataLookup.Clear();
             HeartbeatListeners.Clear();
             return;
         }
+
         NetworkQualityDataLookup.Remove(player.Lookup);
         HeartbeatListeners.Remove(player);
     }
@@ -48,14 +54,6 @@ public class NetworkQualityManager
         }
     }
 
-    public static void SendToMasterQualityReport()
-    {
-        if (NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
-        {
-            NetworkAPI.InvokeEvent(typeof(pToMasterNetworkQualityReport).FullName, quality.GetToMasterReportData(), HeartbeatListeners, SNet_ChannelType.GameNonCritical);
-        }
-    }
-
     public static void OnMasterChanged()
     {
         if (!IsMasterHasHeartbeat)
@@ -64,19 +62,6 @@ public class NetworkQualityManager
             {
                 data.OnMasterChanged();
             }
-        }
-    }
-
-
-    public static short LocalToMasterLatency
-    {
-        get
-        {
-            if (NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var quality))
-            {
-                return quality.ToMasterLatency;
-            }
-            return 0;
         }
     }
 

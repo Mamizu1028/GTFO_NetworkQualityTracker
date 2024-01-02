@@ -1,8 +1,10 @@
 ﻿using BepInEx.Unity.IL2CPP.Utils;
+using GTFO.API;
 using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
 using System.Collections;
 using System.Text;
+using TheArchive.Utilities;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 
@@ -10,23 +12,13 @@ namespace Hikaria.NetworkQualityTracker.Handlers;
 
 public class NetworkQualityUpdater : MonoBehaviour
 {
-    public static NetworkQualityUpdater Instance { get; private set; }
+    private static NetworkQualityUpdater Instance;
 
     private const float TextUpdateInterval = 0.5f;
 
     private const float HeartbeatSendInterval = 0.5f;
 
     private const float ToMasterQualityReportSendInterval = 0.5f;
-
-    public static List<NetworkQualityInfo> ShowQualityInfo { get; set; } = new()
-    {
-        NetworkQualityInfo.ToLocalLatency,
-        NetworkQualityInfo.ToLocalNetworkJitter,
-        NetworkQualityInfo.ToLocalPacketLoss,
-        NetworkQualityInfo.ToMasterLatency,
-        NetworkQualityInfo.ToMasterNetworkJitter,
-        NetworkQualityInfo.ToMasterPacketLoss
-    };
 
     private void Awake()
     {
@@ -50,58 +42,50 @@ public class NetworkQualityUpdater : MonoBehaviour
         }
     }
 
-    private static StringBuilder sb = new(300);
-
     private static IEnumerator TextUpdateCoroutine()
     {
         var yielder = new WaitForSecondsRealtime(TextUpdateInterval);
-        var fixedUpdateYielder = new WaitForFixedUpdate();
+
+        StringBuilder sb = new(300);
 
         while (true)
         {
             foreach (var data in NetworkQualityManager.NetworkQualityDataLookup.Values)
             {
                 data.GetToMasterReportText(out var toMasterLatencyText, out var toMasterJitterText, out var toMasterPacketLossRateText);
-                if (data.Owner.IsLocal)
+                if (s_ShowInWatermark && data.Owner.IsLocal)
                 {
-                    if (NetworkQualityManager.WatermarkQualityTextMesh != null && s_ShowInWatermark)
+                    if (NetworkQualityManager.WatermarkQualityTextMesh != null)
                     {
                         NetworkQualityManager.WatermarkQualityTextMesh.SetText($"{toMasterLatencyText}, {toMasterJitterText}, {toMasterPacketLossRateText}");
                         NetworkQualityManager.WatermarkQualityTextMesh.ForceMeshUpdate();
-                        yield return fixedUpdateYielder;
                     }
                 }
-                if (NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(data.Owner.PlayerSlotIndex(), out var textMesh) && s_ShowInPageLoadout)
+                if (s_ShowInPageLoadout && NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(data.Owner.PlayerSlotIndex(), out var textMesh))
                 {
-                    data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
-
-                    if (!data.Owner.IsLocal)
+                    if (!data.Owner.IsLocal && AnyToLocal)
                     {
-                        if (AnyToLocal)
-                        {
-                            sb.Append("与本地连接质量:\n");
-                        }
+                        data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
-                        if (ShowQualityInfo.Contains(NetworkQualityInfo.ToLocalLatency))
+                        sb.Append("与本地连接质量:\n");
+
+                        if (ShowToLocalLatency)
                             sb.Append($"{toLocalLatencyText}\n");
-                        if (ShowQualityInfo.Contains(NetworkQualityInfo.ToLocalNetworkJitter))
+                        if (ShowToLocalNetworkJitter)
                             sb.Append($"{toLocalJitterText}\n");
-                        if (ShowQualityInfo.Contains(NetworkQualityInfo.ToLocalPacketLoss))
+                        if (ShowToLocalPacketLoss)
                             sb.Append($"{toLocalPacketLossRateText}\n");
                     }
 
-                    if (!SNet.IsMaster)
+                    if (!SNet.IsMaster && AnyToMaster)
                     {
-                        if (AnyToMaster)
-                        {
-                            sb.Append("与主机连接质量:\n");
-                        }
+                        sb.Append("与主机连接质量:\n");
 
-                        if (ShowQualityInfo.Contains(NetworkQualityInfo.ToMasterLatency))
+                        if (ShowToMasterLatency)
                             sb.Append($"{toMasterLatencyText}\n");
-                        if (ShowQualityInfo.Contains(NetworkQualityInfo.ToMasterNetworkJitter))
+                        if (ShowToMasterNetworkJitter)
                             sb.Append($"{toMasterJitterText}\n");
-                        if (ShowQualityInfo.Contains(NetworkQualityInfo.ToMasterPacketLoss))
+                        if (ShowToMasterPacketLoss)
                             sb.Append($"{toMasterPacketLossRateText}\n");
                     }
 
@@ -114,15 +98,24 @@ public class NetworkQualityUpdater : MonoBehaviour
         }
     }
 
-    private static bool AnyToMaster => ShowQualityInfo.Any(p => p == NetworkQualityInfo.ToMasterLatency || p == NetworkQualityInfo.ToMasterPacketLoss || p == NetworkQualityInfo.ToMasterNetworkJitter);
-    private static bool AnyToLocal => ShowQualityInfo.Any(p => p == NetworkQualityInfo.ToLocalLatency || p == NetworkQualityInfo.ToLocalPacketLoss || p == NetworkQualityInfo.ToLocalNetworkJitter);
+    public static bool ShowToLocalLatency = true;
+    public static bool ShowToLocalNetworkJitter = true;
+    public static bool ShowToLocalPacketLoss = true;
+    public static bool ShowToMasterLatency = true;
+    public static bool ShowToMasterNetworkJitter = true;
+    public static bool ShowToMasterPacketLoss = true;
+    private static bool AnyToLocal => ShowToLocalLatency || ShowToLocalNetworkJitter || ShowToLocalPacketLoss;
+    private static bool AnyToMaster => ShowToMasterLatency || ShowToMasterNetworkJitter || ShowToMasterPacketLoss;
 
     private static IEnumerator SendToMasterQualityCoroutine()
     {
         var yielder = new WaitForSecondsRealtime(ToMasterQualityReportSendInterval);
         while (true)
         {
-            NetworkQualityManager.SendToMasterQualityReport();
+            if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
+            {
+                NetworkAPI.InvokeEvent(typeof(pToMasterNetworkQualityReport).FullName, quality.GetToMasterReportData(), NetworkQualityManager.HeartbeatListeners, SNet_ChannelType.GameNonCritical);
+            }
             yield return yielder;
         }
     }

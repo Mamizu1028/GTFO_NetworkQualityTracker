@@ -12,6 +12,7 @@ using static Hikaria.NetworkQualityTracker.Managers.NetworkQualityManager;
 
 namespace Hikaria.NetworkQualityTracker.Features
 {
+    [DisallowInGameToggle]
     [EnableFeatureByDefault]
     public class NetworkQualityTracker : Feature
     {
@@ -35,6 +36,7 @@ namespace Hikaria.NetworkQualityTracker.Features
                     WatermarkQualityTextMesh?.gameObject.SetActive(value);
                 }
             }
+
             [FSDisplayName("在大厅详情界面显示")]
             public bool ShowInPageLoadout
             {
@@ -49,8 +51,9 @@ namespace Hikaria.NetworkQualityTracker.Features
                 }
             }
 
-            [FSDisplayName("显示内容")]
-            public List<NetworkQualityInfo> ShowQualityInfo { get => NetworkQualityUpdater.ShowQualityInfo; set => NetworkQualityUpdater.ShowQualityInfo = value; }
+            [FSInline]
+            [FSDisplayName("显示信息")]
+            public ShowInfoSetting InfoSettings { get; set; } = new();
 
             [FSHeader("显示格式")]
             [FSDisplayName("延迟格式")]
@@ -60,8 +63,28 @@ namespace Hikaria.NetworkQualityTracker.Features
             [FSDisplayName("丢包率格式")]
             public string PacketLossFormat { get; set; } = "丢包率: {0}";
 
+            [FSInline]
+ 
+            [FSHeader("位置设置")]
             [FSDisplayName("位置设置")]
             public PositionSetting Position { get; set; } = new();
+        }
+
+        public class ShowInfoSetting
+        {
+            [FSHeader("显示信息")]
+            [FSDisplayName("显示到本地延迟")]
+            public bool ShowToLocalLatency { get => NetworkQualityUpdater.ShowToLocalLatency; set => NetworkQualityUpdater.ShowToLocalLatency = value; }
+            [FSDisplayName("显示到本地网络抖动")]
+            public bool ShowToLocalNetworkJitter { get => NetworkQualityUpdater.ShowToLocalNetworkJitter; set => NetworkQualityUpdater.ShowToLocalNetworkJitter = value; }
+            [FSDisplayName("显示到本地丢包率")]
+            public bool ShowToLocalPacketLoss { get => NetworkQualityUpdater.ShowToLocalPacketLoss; set => NetworkQualityUpdater.ShowToLocalPacketLoss = value; }
+            [FSDisplayName("显示到主机延迟")]
+            public bool ShowToMasterLatency { get => NetworkQualityUpdater.ShowToMasterLatency; set => NetworkQualityUpdater.ShowToMasterLatency = value; }
+            [FSDisplayName("显示到主机网络抖动")]
+            public bool ShowToMasterNetworkJitter { get => NetworkQualityUpdater.ShowToMasterNetworkJitter; set => NetworkQualityUpdater.ShowToMasterNetworkJitter = value; }
+            [FSDisplayName("显示到主机丢包率")]
+            public bool ShowToMasterPacketLoss { get => NetworkQualityUpdater.ShowToMasterPacketLoss; set => NetworkQualityUpdater.ShowToMasterPacketLoss = value; }
         }
 
         public class PositionSetting
@@ -317,15 +340,5 @@ namespace Hikaria.NetworkQualityTracker.Features
             public short Index = 0;
         }
         #endregion
-
-        public enum NetworkQualityInfo
-        {
-            ToLocalLatency,
-            ToLocalPacketLoss,
-            ToLocalNetworkJitter,
-            ToMasterLatency,
-            ToMasterPacketLoss,
-            ToMasterNetworkJitter
-        }
     }
 }
