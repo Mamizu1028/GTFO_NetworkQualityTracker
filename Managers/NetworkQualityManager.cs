@@ -10,6 +10,10 @@ public class NetworkQualityManager
 {
     public static void RegisterListener(SNet_Player player)
     {
+        if (player.IsBot)
+        {
+            return;
+        }
         NetworkQualityDataLookup.TryAdd(player.Lookup, new(player));
         if (!player.IsLocal)
         {
@@ -19,6 +23,10 @@ public class NetworkQualityManager
 
     public static void UnregisterListener(SNet_Player player)
     {
+        if (player.IsBot)
+        {
+            return;
+        }
         if (player.IsLocal)
         {
             NetworkQualityDataLookup.Clear();
@@ -78,7 +86,7 @@ public class NetworkQualityManager
     public static long CurrentTime => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     public static TextMeshPro WatermarkQualityTextMesh { get; set; }
-    public static Dictionary<int, TextMeshPro> PageLoadoutQualityTextMeshes = new();
+    public static Dictionary<int, TextMeshPro> PageLoadoutQualityTextMeshes { get; } = new();
     public static TextMeshPro WatermarkTextPrefab => GuiManager.WatermarkLayer.m_watermark.m_watermarkText;
 }
 
@@ -167,16 +175,16 @@ public class NetworkQualityData
 
     public void GetToLocalReportText(out string toLocalLatencyText, out string toLocalJitterText, out string toLocalPacketLossRateText)
     {
-        toLocalLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{($"{ToLocalLatency}ms")}</color>");
-        toLocalJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{($"{ToLocalNetworkJitter}ms")}</color>");
-        toLocalPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{($"{ToLocalPacketLossRate}%")}</color>");
+        toLocalLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{$"{ToLocalLatency}ms"}</color>");
+        toLocalJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{$"{ToLocalNetworkJitter}ms"}</color>");
+        toLocalPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{$"{ToLocalPacketLossRate}%"}</color>");
     }
 
     public void GetToMasterReportText(out string toMasterLatencyText, out string toMasterJitterText, out string toMasterPacketLossRateText)
     {
-        toMasterLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{(NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterLatency}ms")}</color>");
-        toMasterJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{(NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterNetworkJitter}ms")}</color>");
-        toMasterPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterPacketLossRate}%")}</color>");
+        toMasterLatencyText = string.Format(Settings.LatencyFormat, $"<{LatencyColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterLatency}ms")}</color>");
+        toMasterJitterText = string.Format(Settings.NetworkJitterFormat, $"<{NetworkJitterColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterNetworkJitter}ms")}</color>");
+        toMasterPacketLossRateText = string.Format(Settings.PacketLossFormat, $"<{PacketLossColorHexString}>{(!NetworkQualityManager.IsMasterHasHeartbeat ? "未知" : $"{ToMasterPacketLossRate}%")}</color>");
     }
 
     public pToMasterNetworkQualityReport GetToMasterReportData()

@@ -1,10 +1,8 @@
 ﻿using BepInEx.Unity.IL2CPP.Utils;
-using CellMenu;
 using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
 using System.Collections;
 using System.Text;
-using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 
@@ -37,43 +35,9 @@ public class NetworkQualityUpdater : MonoBehaviour
 
     public static void StartCoroutine()
     {
-        Instance.StartCoroutine(PlaceTextMesh());
         Instance.StartCoroutine(SendHeartbeatCoroutine());
         Instance.StartCoroutine(SendToMasterQualityCoroutine());
         Instance.StartCoroutine(TextUpdateCoroutine());
-    }
-
-    private static IEnumerator PlaceTextMesh()
-    {
-        var yielder = new WaitForSecondsRealtime(1f);
-        while (true)
-        {
-            if (CM_PageLoadout.Current == null || CM_PageLoadout.Current.m_playerLobbyBars == null
-                || CM_PageLoadout.Current.m_playerLobbyBars.Count == 0)
-            {
-                yield return yielder;
-            }
-            foreach (var bar in CM_PageLoadout.Current.m_playerLobbyBars)
-            {
-                int index = bar.PlayerSlotIndex;
-                if (!NetworkQualityManager.PageLoadoutQualityTextMeshes.ContainsKey(index))
-                {
-                    var textMesh = GameObject.Instantiate(bar.m_nickText);
-                    textMesh.m_ignoreActiveState = true;
-                    textMesh.transform.SetParent(bar.m_hasPlayerRoot.transform, false);
-                    textMesh.transform.localPosition.Set(0f, -0f, 0f);
-                    textMesh.fontStyle = FontStyles.Normal;
-                    textMesh.SetText("Testing");
-                    textMesh.ForceMeshUpdate();
-                    NetworkQualityManager.PageLoadoutQualityTextMeshes[index] = textMesh;
-                }
-            }
-            if (NetworkQualityManager.PageLoadoutQualityTextMeshes.Count == 4)
-            {
-                yield break;
-            }
-            yield return yielder;
-        }
     }
 
     private static IEnumerator SendHeartbeatCoroutine()
@@ -86,16 +50,15 @@ public class NetworkQualityUpdater : MonoBehaviour
         }
     }
 
+    private static StringBuilder sb = new(300);
+
     private static IEnumerator TextUpdateCoroutine()
     {
         var yielder = new WaitForSecondsRealtime(TextUpdateInterval);
+        var fixedUpdateYielder = new WaitForFixedUpdate();
+
         while (true)
         {
-            if (PositionNeedUpdate)
-            {
-                UpdatePostion();
-                PositionNeedUpdate = false;
-            }
             foreach (var data in NetworkQualityManager.NetworkQualityDataLookup.Values)
             {
                 data.GetToMasterReportText(out var toMasterLatencyText, out var toMasterJitterText, out var toMasterPacketLossRateText);
@@ -105,15 +68,20 @@ public class NetworkQualityUpdater : MonoBehaviour
                     {
                         NetworkQualityManager.WatermarkQualityTextMesh.SetText($"{toMasterLatencyText}, {toMasterJitterText}, {toMasterPacketLossRateText}");
                         NetworkQualityManager.WatermarkQualityTextMesh.ForceMeshUpdate();
+                        yield return fixedUpdateYielder;
                     }
                 }
                 if (NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(data.Owner.PlayerSlotIndex(), out var textMesh))
                 {
-                    StringBuilder sb = new(300);
+                    data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
                     if (!data.Owner.IsLocal)
                     {
-                        data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
+                        if (AnyToLocal)
+                        {
+                            sb.Append("与本地连接质量:\n");
+                        }
+
                         if (ShowQualityInfo.Contains(NetworkQualityInfo.ToLocalLatency))
                             sb.Append($"{toLocalLatencyText}\n");
                         if (ShowQualityInfo.Contains(NetworkQualityInfo.ToLocalNetworkJitter))
@@ -122,8 +90,13 @@ public class NetworkQualityUpdater : MonoBehaviour
                             sb.Append($"{toLocalPacketLossRateText}\n");
                     }
 
-                    if (!SNet.IsMaster)
+                    if (SNet.IsMaster)
                     {
+                        if (AnyToMaster)
+                        {
+                            sb.Append("与主机连接质量:\n");
+                        }
+
                         if (ShowQualityInfo.Contains(NetworkQualityInfo.ToMasterLatency))
                             sb.Append($"{toMasterLatencyText}\n");
                         if (ShowQualityInfo.Contains(NetworkQualityInfo.ToMasterNetworkJitter))
@@ -132,17 +105,17 @@ public class NetworkQualityUpdater : MonoBehaviour
                             sb.Append($"{toMasterPacketLossRateText}\n");
                     }
 
-                    if (sb.Length > 0)
-                    {
-                        sb.Remove(sb.Length - 1, 1);
-                    }
-
                     textMesh.SetText(sb.ToString());
+                    textMesh.ForceMeshUpdate();
+                    sb.Clear();
                 }
             }
             yield return yielder;
         }
     }
+
+    private static bool AnyToMaster => ShowQualityInfo.Any(p => p == NetworkQualityInfo.ToMasterLatency || p == NetworkQualityInfo.ToMasterPacketLoss || p == NetworkQualityInfo.ToMasterNetworkJitter);
+    private static bool AnyToLocal => ShowQualityInfo.Any(p => p == NetworkQualityInfo.ToLocalLatency || p == NetworkQualityInfo.ToLocalPacketLoss || p == NetworkQualityInfo.ToLocalNetworkJitter);
 
     private static IEnumerator SendToMasterQualityCoroutine()
     {
