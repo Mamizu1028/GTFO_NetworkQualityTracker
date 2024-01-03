@@ -4,6 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +31,9 @@
     </Reference>
     <Reference Include="SNet_ASM">
       <HintPath>..\..\..\Program Files (x86)\Steam\steamapps\common\GTFO\BepInEx\interop\SNet_ASM.dll</HintPath>
+    </Reference>
+    <Reference Include="SteamWorks_ASM">
+      <HintPath>..\..\..\Program Files (x86)\Steam\steamapps\common\GTFO\BepInEx\interop\SteamWorks_ASM.dll</HintPath>
     </Reference>
     <Reference Include="TheArchive.Core">
       <HintPath>..\GTFO_TheArchive\TheArchive.Core\bin\R_BIE\TheArchive.Core.dll</HintPath>

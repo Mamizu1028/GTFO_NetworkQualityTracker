@@ -4,6 +4,7 @@ using TheArchive.Utilities;
 using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
+using static Hikaria.NetworkQualityTracker.Utils.Utils;
 
 namespace Hikaria.NetworkQualityTracker.Managers;
 public class NetworkQualityManager
@@ -87,28 +88,34 @@ public class NetworkQualityData
     public void ReceiveHeartbeatAck(pHeartbeatAck data)
     {
         var heartbeatIndex = data.Index;
-        ToLocalLatency = (short)(Owner.IsLocal || Owner.IsBot || !NetworkQualityManager.IsMasterHasHeartbeat ? 0 : NetworkQualityManager.CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
-        if (LatencyHistory.Count >= LatencyQueueMaxCap)
+
+        ToLocalLatency = (short)(Owner.IsLocal || Owner.IsBot ? 0 : NetworkQualityManager.CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
+        if (LatencyHistory.Count >= LatencyHistoryMaxCap)
         {
             LatencyHistory.Dequeue();
         }
         LatencyHistory.Enqueue(ToLocalLatency);
+
         if (NetworkJitterQueue.Count >= NetworkJitterQueueMaxCap)
         {
             NetworkJitterQueue.Dequeue();
         }
         NetworkJitterQueue.Enqueue(ToLocalLatency);
         ToLocalNetworkJitter = (short)(NetworkJitterQueue.Max() - NetworkJitterQueue.Min());
-        if (heartbeatIndex > LastReceivedHeartbeatAckIndex + 1)
+
+        short expectedIndex = (short)(LastReceivedHeartbeatAckIndex + 1);
+        if (heartbeatIndex > expectedIndex)
         {
-            PacketLoss += (short)(heartbeatIndex - LastReceivedHeartbeatAckIndex - 1);
+            for (short i = expectedIndex; i < heartbeatIndex; i++)
+            {
+                PacketLossLookup[i] = false;
+            }
         }
+        PacketLossLookup[heartbeatIndex] = true;
         LastReceivedHeartbeatAckIndex = heartbeatIndex;
+
         CheckToMasterQuality();
-        if (heartbeatIndex > LatencyQueueMaxCap)
-        {
-            Reset();
-        }
+        LastReceivedTime = NetworkQualityManager.CurrentTime;
     }
 
     public void ReceiveNetworkQualityReport(pToMasterNetworkQualityReport data)
@@ -120,19 +127,22 @@ public class NetworkQualityData
     public void SendHeartbeat()
     {
         HeartbeatSendIndex++;
-        HeartbeatSendTimeLookup[HeartbeatSendIndex] = NetworkQualityManager.CurrentTime;
+        long currentTime = NetworkQualityManager.CurrentTime;
+        HeartbeatSendTimeLookup[HeartbeatSendIndex] = currentTime;
         NetworkAPI.InvokeEvent<pHeartbeat>(typeof(pHeartbeat).FullName, new(HeartbeatSendIndex), Owner, SNet_ChannelType.GameNonCritical);
+        if (HeartbeatSendIndex >= LatencyHistoryMaxCap)
+        {
+            HeartbeatSendIndex = 0;
+        }
+        if (currentTime - LastReceivedTime > 1000)
+        {
+            ToLocalLatency = 999;
+        }
     }
 
     public void SendHeartbeatAck(pHeartbeat data)
     {
         NetworkAPI.InvokeEvent<pHeartbeatAck>(typeof(pHeartbeatAck).FullName, new(data.Index), Owner, SNet_ChannelType.GameNonCritical);
-    }
-
-    public void Reset()
-    {
-        HeartbeatSendIndex = 0;
-        PacketLoss = 0;
     }
 
     public void OnMasterChanged()
@@ -184,11 +194,26 @@ public class NetworkQualityData
 
     private static string GetColorHexString(float min, float max, float value)
     {
-        Color green = new(0f, 0.7206f, 0f, 0.3137f);
-        Color red = new(0.7206f, 0f, 0f, 0.3137f);
         float t = (value - min) / (max - min);
-        return Color.Lerp(green, red, t).ToHexString();
+
+        // 将RGB颜色转换为HSL颜色
+        RGBToHSL(green, out var h1, out var s1, out var l1);
+
+        RGBToHSL(red, out var h2, out var s2, out var l2);
+
+        // 在HSL空间进行插值
+        float h = Mathf.Lerp(h1, h2, t);
+        float s = Mathf.Lerp(s1, s2, t);
+        float l = Mathf.Lerp(l1, l2, t);
+
+        // 将HSL颜色转换回RGB颜色
+        Color interpolatedColor = HSLToRGB(h, s, l);
+
+        return interpolatedColor.ToHexString();
     }
+
+    private static Color green = new(0f, 0.7206f, 0f, 0.3137f);
+    private static Color red = new(0.7206f, 0f, 0f, 0.3137f);
 
     public string ToLocalLatencyColorHexString => GetColorHexString(60, 150, ToLocalLatency);
     public string ToLocalNetworkJitterColorHexString => GetColorHexString(20, 100, ToLocalNetworkJitter);
@@ -199,11 +224,11 @@ public class NetworkQualityData
     public string ToMasterPacketLossColorHexString => GetColorHexString(0, 5, ToMasterPacketLossRate);
 
     public SNet_Player Owner { get; private set; }
-    public Queue<short> LatencyHistory { get; private set; } = new(LatencyQueueMaxCap);
+    public Queue<short> LatencyHistory { get; private set; } = new(LatencyHistoryMaxCap);
     public Queue<short> NetworkJitterQueue { get; private set; } = new(NetworkJitterQueueMaxCap);
+    public Dictionary<short, bool> PacketLossLookup { get; private set; } = new(PacketLossQueueMaxCap);
     public short HeartbeatSendIndex { get; private set; } = 0;
-    public short ToLocalPacketLossRate => (short)(HeartbeatSendIndex == 0 ? 0 : (PacketLoss / HeartbeatSendIndex * 100f));
-    public short PacketLoss { get; private set; } = 0;
+    public short ToLocalPacketLossRate => (short)(!PacketLossLookup.Any() ? 0 : (PacketLossLookup.Count(p => !p.Value) / PacketLossLookup.Count));
     public short ToLocalLatency { get; private set; } = 0;
     public short ToLocalNetworkJitter { get; private set; } = 0;
     public short ToMasterLatency { get; private set; } = 0;
@@ -212,6 +237,8 @@ public class NetworkQualityData
 
     private Dictionary<short, long> HeartbeatSendTimeLookup = new();
     private short LastReceivedHeartbeatAckIndex = 0;
-    private const short LatencyQueueMaxCap = 50;
+    private long LastReceivedTime = -1;
+    private const short LatencyHistoryMaxCap = 50;
     private const short NetworkJitterQueueMaxCap = 20;
+    private const short PacketLossQueueMaxCap = 50;
 }

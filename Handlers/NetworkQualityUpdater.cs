@@ -11,7 +11,7 @@ namespace Hikaria.NetworkQualityTracker.Handlers;
 
 public class NetworkQualityUpdater : MonoBehaviour
 {
-    private static NetworkQualityUpdater Instance;
+    public static NetworkQualityUpdater Instance { get; private set; }
 
     private const float TextUpdateInterval = 0.5f;
 
@@ -62,7 +62,7 @@ public class NetworkQualityUpdater : MonoBehaviour
                 }
                 if (s_ShowInPageLoadout && NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(data.Owner.PlayerSlotIndex(), out var textMesh))
                 {
-                    if (!data.Owner.IsLocal && AnyToLocal)
+                    if (!data.Owner.IsLocal && AnyShowToLocal)
                     {
                         data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
@@ -76,7 +76,7 @@ public class NetworkQualityUpdater : MonoBehaviour
                             sb.Append($"{toLocalPacketLossRateText}\n");
                     }
 
-                    if (!SNet.IsMaster && !data.Owner.IsMaster && AnyToMaster)
+                    if (NetworkQualityManager.IsMasterHasHeartbeat && !SNet.IsMaster && !data.Owner.IsMaster && AnyShowToMaster)
                     {
                         sb.Append($"{Settings.InfoSettings.ToMasterHint}\n");
 
@@ -103,8 +103,8 @@ public class NetworkQualityUpdater : MonoBehaviour
     public static bool ShowToMasterLatency = true;
     public static bool ShowToMasterNetworkJitter = true;
     public static bool ShowToMasterPacketLoss = true;
-    private static bool AnyToLocal => ShowToLocalLatency || ShowToLocalNetworkJitter || ShowToLocalPacketLoss;
-    private static bool AnyToMaster => ShowToMasterLatency || ShowToMasterNetworkJitter || ShowToMasterPacketLoss;
+    private static bool AnyShowToLocal => ShowToLocalLatency || ShowToLocalNetworkJitter || ShowToLocalPacketLoss;
+    private static bool AnyShowToMaster => ShowToMasterLatency || ShowToMasterNetworkJitter || ShowToMasterPacketLoss;
 
     private static IEnumerator SendToMasterQualityCoroutine()
     {

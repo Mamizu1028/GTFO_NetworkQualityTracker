@@ -1,7 +1,10 @@
-﻿using CellMenu;
+﻿using BepInEx.Unity.IL2CPP.Utils;
+using CellMenu;
 using GTFO.API;
 using Hikaria.NetworkQualityTracker.Handlers;
+using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
+using System.Collections;
 using TheArchive.Core.Attributes;
 using TheArchive.Core.Attributes.Feature.Settings;
 using TheArchive.Core.FeaturesAPI;
@@ -9,6 +12,7 @@ using TheArchive.Loader;
 using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Managers.NetworkQualityManager;
+using static PlayfabMatchmakingManager.MatchResult;
 
 namespace Hikaria.NetworkQualityTracker.Features
 {
@@ -64,7 +68,6 @@ namespace Hikaria.NetworkQualityTracker.Features
             public string PacketLossFormat { get; set; } = "丢包率: {0}";
 
             [FSInline]
- 
             [FSHeader("位置设置")]
             [FSDisplayName("位置设置")]
             public PositionSetting Position { get; set; } = new();
@@ -77,17 +80,17 @@ namespace Hikaria.NetworkQualityTracker.Features
             public string ToLocalHint { get; set; } = "与本地连接质量";
             [FSDisplayName("与主机连接提示语")]
             public string ToMasterHint { get; set; } = "与主机连接质量";
-            [FSDisplayName("显示到本地延迟")]
+            [FSDisplayName("与本地延迟")]
             public bool ShowToLocalLatency { get => NetworkQualityUpdater.ShowToLocalLatency; set => NetworkQualityUpdater.ShowToLocalLatency = value; }
-            [FSDisplayName("显示到本地网络抖动")]
+            [FSDisplayName("与本地网络抖动")]
             public bool ShowToLocalNetworkJitter { get => NetworkQualityUpdater.ShowToLocalNetworkJitter; set => NetworkQualityUpdater.ShowToLocalNetworkJitter = value; }
-            [FSDisplayName("显示到本地丢包率")]
+            [FSDisplayName("与本地丢包率")]
             public bool ShowToLocalPacketLoss { get => NetworkQualityUpdater.ShowToLocalPacketLoss; set => NetworkQualityUpdater.ShowToLocalPacketLoss = value; }
-            [FSDisplayName("显示到主机延迟")]
+            [FSDisplayName("与主机延迟")]
             public bool ShowToMasterLatency { get => NetworkQualityUpdater.ShowToMasterLatency; set => NetworkQualityUpdater.ShowToMasterLatency = value; }
-            [FSDisplayName("显示到主机网络抖动")]
+            [FSDisplayName("与主机网络抖动")]
             public bool ShowToMasterNetworkJitter { get => NetworkQualityUpdater.ShowToMasterNetworkJitter; set => NetworkQualityUpdater.ShowToMasterNetworkJitter = value; }
-            [FSDisplayName("显示到主机丢包率")]
+            [FSDisplayName("与主机丢包率")]
             public bool ShowToMasterPacketLoss { get => NetworkQualityUpdater.ShowToMasterPacketLoss; set => NetworkQualityUpdater.ShowToMasterPacketLoss = value; }
         }
 
@@ -197,7 +200,7 @@ namespace Hikaria.NetworkQualityTracker.Features
                         int index = bar.PlayerSlotIndex;
                         if (!PageLoadoutQualityTextMeshes.ContainsKey(index))
                         {
-                            var textMesh = UnityEngine.Object.Instantiate(WatermarkTextPrefab, bar.m_hasPlayerRoot.transform, false);
+                            var textMesh = GameObject.Instantiate(WatermarkTextPrefab, bar.m_hasPlayerRoot.transform, false);
                             textMesh.transform.localPosition = new(1525f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY, 0);
                             textMesh.fontStyle &= ~FontStyles.UpperCase;
                             textMesh.alignment = TextAlignmentOptions.TopLeft;
@@ -218,25 +221,6 @@ namespace Hikaria.NetworkQualityTracker.Features
             }
         }
 
-        //[ArchivePatch(typeof(CM_PlayerLobbyBar), nameof(CM_PlayerLobbyBar.SetHasPlayer))]
-        private class CM_PlayerLobbyBar__SetHasPlayer__Patch
-        {
-            private static void Postfix(CM_PlayerLobbyBar __instance, bool hasPlayer)
-            {
-                if (!hasPlayer)
-                    return;
-                var index = __instance.PlayerSlotIndex;
-                var player = __instance.m_player;
-                if (PageLoadoutQualityTextMeshes.TryGetValue(index, out var textMesh))
-                {
-                    if (player == null || player.IsBot || !IsMasterHasHeartbeat)
-                        textMesh.transform.gameObject.SetActive(false);
-                    else
-                        textMesh.transform.gameObject.SetActive(!player.IsLocal);
-                }
-            }
-        }
-
         [ArchivePatch(typeof(SNet_GlobalManager), nameof(SNet_GlobalManager.Setup))]
         private class SNet_GlobalManager__Setup__Patch
         {
@@ -247,9 +231,11 @@ namespace Hikaria.NetworkQualityTracker.Features
             }
         }
 
+        private static pBroadcastListenHeartbeat broadcastData = new ();
+
         private static void OnPlayerEvent(SNet_Player player, SNet_PlayerEvent playerEvent, SNet_PlayerEventReason reason)
         {
-            NetworkAPI.InvokeEvent<pBroadcastListenHeartbeat>(typeof(pBroadcastListenHeartbeat).FullName, new(), SNet_ChannelType.GameNonCritical);
+            NetworkAPI.InvokeEvent(typeof(pBroadcastListenHeartbeat).FullName, broadcastData, SNet_ChannelType.GameNonCritical);
             switch (playerEvent)
             {
                 case SNet_PlayerEvent.PlayerLeftSessionHub:
@@ -295,9 +281,13 @@ namespace Hikaria.NetworkQualityTracker.Features
 
         private static void OnReceiveBroadcastListenHeartbeat(ulong senderID, pBroadcastListenHeartbeat data)
         {
-            if (SNet.TryGetPlayer(senderID, out var player))
+            if (HeartbeatListeners.Any(p => p.Lookup == senderID))
+                return;
+
+            var core = SNet.Core.TryCast<SNet_Core_STEAM>();
+            if (core != null)
             {
-                RegisterListener(player);
+                RegisterListener(core.GetPlayer(senderID));
             }
         }
 
