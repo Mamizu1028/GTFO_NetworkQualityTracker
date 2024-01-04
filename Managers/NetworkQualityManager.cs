@@ -18,7 +18,7 @@ public class NetworkQualityManager
         NetworkQualityDataLookup.TryAdd(player.Lookup, new(player));
         if (!player.IsLocal)
         {
-            HeartbeatListeners.Add(player);
+            HeartbeatListeners.TryAdd(player.Lookup, player);
         }
     }
 
@@ -41,14 +41,14 @@ public class NetworkQualityManager
         }
 
         NetworkQualityDataLookup.Remove(player.Lookup);
-        HeartbeatListeners.Remove(player);
+        HeartbeatListeners.Remove(player.Lookup);
     }
 
     public static void SendHeartbeats()
     {
         foreach (var data in NetworkQualityDataLookup.Values)
         {
-            if (data.Owner.IsLocal || !HeartbeatListeners.Any(p => p.Lookup == data.Owner.Lookup))
+            if (data.Owner.IsLocal || !HeartbeatListeners.ContainsKey(data.Owner.Lookup))
                 continue;
 
             data.SendHeartbeat();
@@ -66,8 +66,8 @@ public class NetworkQualityManager
         }
     }
 
-    public static bool IsMasterHasHeartbeat => SNet.IsMaster || HeartbeatListeners.Any(p => p.IsMaster);
-    public static List<SNet_Player> HeartbeatListeners { get; } = new();
+    public static bool IsMasterHasHeartbeat => SNet.IsMaster || HeartbeatListeners.Any(p => p.Value.IsMaster);
+    public static Dictionary<ulong, SNet_Player> HeartbeatListeners { get; } = new();
     public static Dictionary<ulong, NetworkQualityData> NetworkQualityDataLookup { get; } = new();
     public static long CurrentTime => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -196,17 +196,14 @@ public class NetworkQualityData
     {
         float t = (value - min) / (max - min);
 
-        // 将RGB颜色转换为HSL颜色
         RGBToHSL(green, out var h1, out var s1, out var l1);
 
         RGBToHSL(red, out var h2, out var s2, out var l2);
 
-        // 在HSL空间进行插值
         float h = Mathf.Lerp(h1, h2, t);
         float s = Mathf.Lerp(s1, s2, t);
         float l = Mathf.Lerp(l1, l2, t);
 
-        // 将HSL颜色转换回RGB颜色
         Color interpolatedColor = HSLToRGB(h, s, l);
 
         return interpolatedColor.ToHexString();

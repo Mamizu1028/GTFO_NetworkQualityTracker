@@ -1,10 +1,7 @@
-﻿using BepInEx.Unity.IL2CPP.Utils;
-using CellMenu;
+﻿using CellMenu;
 using GTFO.API;
 using Hikaria.NetworkQualityTracker.Handlers;
-using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
-using System.Collections;
 using TheArchive.Core.Attributes;
 using TheArchive.Core.Attributes.Feature.Settings;
 using TheArchive.Core.FeaturesAPI;
@@ -12,7 +9,6 @@ using TheArchive.Loader;
 using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Managers.NetworkQualityManager;
-using static PlayfabMatchmakingManager.MatchResult;
 
 namespace Hikaria.NetworkQualityTracker.Features
 {
@@ -281,13 +277,9 @@ namespace Hikaria.NetworkQualityTracker.Features
 
         private static void OnReceiveBroadcastListenHeartbeat(ulong senderID, pBroadcastListenHeartbeat data)
         {
-            if (HeartbeatListeners.Any(p => p.Lookup == senderID))
-                return;
-
-            var core = SNet.Core.TryCast<SNet_Core_STEAM>();
-            if (core != null)
+            if (SNet.Core.TryGetPlayer(senderID, out var player, true))
             {
-                RegisterListener(core.GetPlayer(senderID));
+                RegisterListener(player);
             }
         }
 
