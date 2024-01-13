@@ -115,11 +115,11 @@ public class NetworkQualityUpdater : MonoBehaviour
             {
                 NetworkAPI.InvokeEvent(typeof(pToMasterNetworkQualityReport).FullName, quality.GetToMasterReportData(), NetworkQualityManager.HeartbeatListeners.Values.ToList(), SNet_ChannelType.GameNonCritical);
             }
-            if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var masterQuality))
+            if (NetworkQualityManager.IsMasterHasHeartbeat && NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var masterQuality))
             {
                 masterQuality.UpdateToMasterQuality();
             }
-        yield return yielder;
+            yield return yielder;
         }
     }
 }
