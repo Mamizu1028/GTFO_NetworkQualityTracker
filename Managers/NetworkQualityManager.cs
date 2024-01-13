@@ -7,6 +7,7 @@ using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 using static Hikaria.NetworkQualityTracker.Utils.Utils;
 
 namespace Hikaria.NetworkQualityTracker.Managers;
+
 public class NetworkQualityManager
 {
     public static void RegisterListener(SNet_Player player)
@@ -35,6 +36,8 @@ public class NetworkQualityManager
         }
         if (player.IsLocal)
         {
+            WatermarkQualityTextMesh.SetText(string.Empty);
+            WatermarkQualityTextMesh.ForceMeshUpdate();
             NetworkQualityDataLookup.Clear();
             HeartbeatListeners.Clear();
             return;
@@ -114,7 +117,8 @@ public class NetworkQualityData
         PacketLossLookup[heartbeatIndex] = true;
         LastReceivedHeartbeatAckIndex = heartbeatIndex;
 
-        CheckToMasterQuality();
+        if (!Owner.IsLocal)
+            UpdateToMasterQuality();
         LastReceivedTime = NetworkQualityManager.CurrentTime;
     }
 
@@ -122,6 +126,7 @@ public class NetworkQualityData
     {
         ToMasterLatency = data.ToMasterLatency;
         ToMasterPacketLossRate = data.ToMasterPacketLoss;
+        ToMasterNetworkJitter = data.ToMasterNetworkJitter;
     }
 
     public void SendHeartbeat()
@@ -152,7 +157,7 @@ public class NetworkQualityData
         ToMasterNetworkJitter = 0;
     }
 
-    public void CheckToMasterQuality()
+    public void UpdateToMasterQuality()
     {
         if (!NetworkQualityManager.IsMasterHasHeartbeat)
             return;
