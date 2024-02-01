@@ -31,6 +31,20 @@ public class NetworkQualityUpdater : MonoBehaviour
         Instance.StartCoroutine(SendHeartbeatCoroutine());
         Instance.StartCoroutine(SendToMasterQualityCoroutine());
         Instance.StartCoroutine(TextUpdateCoroutine());
+        Instance.StartCoroutine(WatchdogCoroutine());
+    }
+
+    private static IEnumerator WatchdogCoroutine()
+    {
+        var yielder = new WaitForSecondsRealtime(1f);
+        while (true)
+        {
+            foreach (var data in NetworkQualityManager.NetworkQualityDataLookup.Values)
+            {
+                data.CheckConnection();
+            }
+            yield return yielder;
+        }
     }
 
     public static void StartBroadcast()

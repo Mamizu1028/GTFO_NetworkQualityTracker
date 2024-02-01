@@ -133,16 +133,19 @@ public class NetworkQualityData
     public void SendHeartbeat()
     {
         HeartbeatSendIndex++;
-        long currentTime = NetworkQualityManager.CurrentTime;
-        HeartbeatSendTimeLookup[HeartbeatSendIndex] = currentTime;
+        HeartbeatSendTimeLookup[HeartbeatSendIndex] = NetworkQualityManager.CurrentTime;
         NetworkAPI.InvokeEvent<pHeartbeat>(typeof(pHeartbeat).FullName, new(HeartbeatSendIndex), Owner, SNet_ChannelType.GameNonCritical);
         if (HeartbeatSendIndex >= LatencyHistoryMaxCap)
         {
             HeartbeatSendIndex = 0;
         }
-        if (currentTime - LastReceivedTime > 9999)
+    }
+
+    public void CheckConnection()
+    {
+        if (NetworkQualityManager.CurrentTime - LastReceivedTime > 999)
         {
-            ToLocalLatency = 9999;
+            ToLocalLatency = 999;
         }
     }
 
