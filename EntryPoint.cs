@@ -2,6 +2,7 @@
 using BepInEx.Unity.IL2CPP;
 using TheArchive;
 using TheArchive.Core;
+using TheArchive.Core.Localization;
 
 namespace Hikaria.NetworkQualityTracker;
 
@@ -14,7 +15,7 @@ public class EntryPoint : BasePlugin, IArchiveModule
     {
         Instance = this;
 
-        ArchiveMod.RegisterModule(typeof(EntryPoint));
+        ArchiveMod.RegisterArchiveModule(typeof(EntryPoint));
 
         Logs.LogMessage("OK");
     }
@@ -42,4 +43,12 @@ public class EntryPoint : BasePlugin, IArchiveModule
     public bool UsesLegacyPatches => false;
 
     public ArchiveLegacyPatcher Patcher { get; set; }
+
+    public string ModuleGroup => "Network Quality Tracker";
+
+    public Dictionary<Language, string> ModuleGroupLanguages => new()
+    {
+        { Language.Chinese, "网络质量跟踪器" },
+        { Language.English, "Network Quality Tracker" }
+    };
 }

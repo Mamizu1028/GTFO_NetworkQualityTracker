@@ -18,7 +18,9 @@ namespace Hikaria.NetworkQualityTracker.Features
     {
         public override string Name => "Network Quality Tracker";
 
-        public override string Group => FeatureGroups.QualityOfLife;
+        public override FeatureGroup Group => ModuleGroup;
+
+        public override bool InlineSettingsIntoParentMenu => true;
 
         #region FeatureSettings
         [FeatureConfig]
@@ -227,11 +229,16 @@ namespace Hikaria.NetworkQualityTracker.Features
             }
         }
 
-        private static pBroadcastListenHeartbeat broadcastData = new ();
+        private static pBroadcastListenHeartbeat broadcastData = new();
+
+        internal static void BroadcastListenHeartbeat()
+        {
+            NetworkAPI.InvokeEvent(typeof(pBroadcastListenHeartbeat).FullName, broadcastData, SNet_ChannelType.GameNonCritical);
+        }
 
         private static void OnPlayerEvent(SNet_Player player, SNet_PlayerEvent playerEvent, SNet_PlayerEventReason reason)
         {
-            NetworkAPI.InvokeEvent(typeof(pBroadcastListenHeartbeat).FullName, broadcastData, SNet_ChannelType.GameNonCritical);
+            NetworkQualityUpdater.StartBroadcast();
             switch (playerEvent)
             {
                 case SNet_PlayerEvent.PlayerLeftSessionHub:

@@ -1,5 +1,6 @@
 ﻿using GTFO.API;
 using SNetwork;
+using System.Collections.Generic;
 using TheArchive.Utilities;
 using TMPro;
 using UnityEngine;
@@ -19,7 +20,7 @@ public class NetworkQualityManager
         NetworkQualityDataLookup.TryAdd(player.Lookup, new(player));
         if (!player.IsLocal)
         {
-            HeartbeatListeners.TryAdd(player.Lookup, player);
+            HeartbeatListeners[player.Lookup] = player;
         }
     }
 
@@ -139,9 +140,9 @@ public class NetworkQualityData
         {
             HeartbeatSendIndex = 0;
         }
-        if (currentTime - LastReceivedTime > 1000)
+        if (currentTime - LastReceivedTime > 9999)
         {
-            ToLocalLatency = 999;
+            ToLocalLatency = 9999;
         }
     }
 

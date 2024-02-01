@@ -19,6 +19,8 @@ public class NetworkQualityUpdater : MonoBehaviour
 
     private const float ToMasterQualityReportSendInterval = 0.5f;
 
+    private static Coroutine _broadcastCoroutine;
+
     private void Awake()
     {
         Instance = this;
@@ -29,6 +31,27 @@ public class NetworkQualityUpdater : MonoBehaviour
         Instance.StartCoroutine(SendHeartbeatCoroutine());
         Instance.StartCoroutine(SendToMasterQualityCoroutine());
         Instance.StartCoroutine(TextUpdateCoroutine());
+    }
+
+    public static void StartBroadcast()
+    {
+        if (_broadcastCoroutine != null)
+        {
+            Instance.StopCoroutine(_broadcastCoroutine);
+        }
+        _broadcastCoroutine = Instance.StartCoroutine(BroadcastCoroutine());
+    }
+
+    private static IEnumerator BroadcastCoroutine()
+    {
+        var yielder = new WaitForSecondsRealtime(1f);
+        int second = 60;
+        while (second-- > 0)
+        {
+            BroadcastListenHeartbeat();
+            second--;
+            yield return yielder;
+        }
     }
 
     private static IEnumerator SendHeartbeatCoroutine()
