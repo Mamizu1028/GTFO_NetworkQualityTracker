@@ -129,7 +129,6 @@ public class NetworkQualityUpdater : MonoBehaviour
                     textMesh.ForceMeshUpdate();
                     sb.Clear();
                 }
-                yield return null;
             }
             yield return yielder;
         }
