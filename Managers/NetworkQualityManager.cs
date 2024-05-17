@@ -188,7 +188,7 @@ public class NetworkQualityData
     public void ReceiveHeartbeatAck(pHeartbeatAck data)
     {
         var heartbeatIndex = data.Index;
-        LatencyHistory.TryDequeue(out var LastToLocalLatency);
+        LatencyHistory.TryPeek(out var LastToLocalLatency);
         ToLocalLatency = (uint)(CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
         if (LatencyHistory.Count >= LatencyHistoryMaxCap)
         {
@@ -200,7 +200,8 @@ public class NetworkQualityData
         {
             NetworkJitterQueue.Dequeue();
         }
-        NetworkJitterQueue.Enqueue(ToLocalLatency - LastToLocalLatency);
+
+        NetworkJitterQueue.Enqueue((uint)Math.Abs(ToLocalLatency - LastToLocalLatency));
         ToLocalNetworkJitter = NetworkJitterQueue.Max();
 
         if (!PacketLossLookup.Contains(data.Index))
