@@ -5,6 +5,7 @@ using SNetwork;
 using TheArchive.Core.Attributes;
 using TheArchive.Core.Attributes.Feature.Settings;
 using TheArchive.Core.FeaturesAPI;
+using TheArchive.Core.Localization;
 using TheArchive.Loader;
 using TMPro;
 using UnityEngine;
@@ -21,6 +22,8 @@ namespace Hikaria.NetworkQualityTracker.Features
         public override FeatureGroup Group => ModuleGroup;
 
         public override bool InlineSettingsIntoParentMenu => true;
+
+        public static ILocalizationService LocalizationService { get; private set; }
 
         #region FeatureSettings
         [FeatureConfig]
@@ -57,14 +60,6 @@ namespace Hikaria.NetworkQualityTracker.Features
             [FSDisplayName("显示信息")]
             public ShowInfoSetting InfoSettings { get; set; } = new();
 
-            [FSHeader("显示格式")]
-            [FSDisplayName("延迟格式")]
-            public string LatencyFormat { get; set; } = "延迟: {0}";
-            [FSDisplayName("延迟抖动格式")]
-            public string NetworkJitterFormat { get; set; } = "抖动: {0}";
-            [FSDisplayName("丢包率格式")]
-            public string PacketLossFormat { get; set; } = "丢包率: {0}";
-
             [FSInline]
             [FSHeader("位置设置")]
             [FSDisplayName("位置设置")]
@@ -73,11 +68,7 @@ namespace Hikaria.NetworkQualityTracker.Features
 
         public class ShowInfoSetting
         {
-            [FSHeader("显示信息")]
-            [FSDisplayName("与本地连接提示语")]
-            public string ToLocalHint { get; set; } = "与本地连接质量";
-            [FSDisplayName("与主机连接提示语")]
-            public string ToMasterHint { get; set; } = "与主机连接质量";
+            [FSHeader("信息设置")]
             [FSDisplayName("与本地延迟")]
             public bool ShowToLocalLatency { get => NetworkQualityUpdater.ShowToLocalLatency; set => NetworkQualityUpdater.ShowToLocalLatency = value; }
             [FSDisplayName("与本地网络抖动")]
@@ -223,6 +214,7 @@ namespace Hikaria.NetworkQualityTracker.Features
         #region FeatureMethods
         public override void Init()
         {
+            LocalizationService = Localization;
             LoaderWrapper.ClassInjector.RegisterTypeInIl2Cpp<NetworkQualityUpdater>();
             NetworkQualityManager.Setup();
         }

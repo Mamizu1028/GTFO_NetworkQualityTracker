@@ -81,9 +81,9 @@ public class NetworkQualityUpdater : MonoBehaviour
                     {
                         data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
-                        sb.AppendLine($"{Settings.InfoSettings.ToLocalHint}");
+                        sb.AppendLine(LocalizationService.Get(7));
                         if (!data.IsAlive)
-                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>连接已断开</color>");
+                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>{LocalizationService.Get(5)}</color>");
                         if (ShowToLocalLatency)
                             sb.AppendLine($"{toLocalLatencyText}");
                         if (ShowToLocalNetworkJitter)
@@ -94,7 +94,9 @@ public class NetworkQualityUpdater : MonoBehaviour
 
                     if (NetworkQualityManager.IsMasterHasHeartbeat && !SNet.IsMaster && !data.Owner.IsMaster && AnyShowToMaster)
                     {
-                        sb.AppendLine($"{Settings.InfoSettings.ToMasterHint}");
+                        sb.AppendLine(LocalizationService.Get(8));
+                        if (!data.IsToMasterAlive)
+                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>{LocalizationService.Get(6)}</color>");
                         if (ShowToMasterLatency)
                             sb.AppendLine($"{toMasterLatencyText}");
                         if (ShowToMasterNetworkJitter)
