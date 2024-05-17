@@ -1,6 +1,6 @@
 ﻿using CellMenu;
-using GTFO.API;
 using Hikaria.NetworkQualityTracker.Handlers;
+using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
 using TheArchive.Core.Attributes;
 using TheArchive.Core.Attributes.Feature.Settings;
@@ -187,7 +187,7 @@ namespace Hikaria.NetworkQualityTracker.Features
                     WatermarkQualityTextMesh = UnityEngine.Object.Instantiate(WatermarkTextPrefab);
                     WatermarkQualityTextMesh.transform.SetParent(WatermarkTextPrefab.transform.parent, false);
                     WatermarkQualityTextMesh.transform.localPosition = new Vector3(s_WatermarkOffsetX, 17.5f + s_WatermarkOffsetY);
-                    WatermarkQualityTextMesh.SetText("");
+                    WatermarkQualityTextMesh.SetText(string.Empty);
                     WatermarkQualityTextMesh.color = new(0.7075f, 0.7075f, 0.7075f, 0.4706f);
                     WatermarkQualityTextMesh.fontStyle &= ~FontStyles.UpperCase;
                     WatermarkQualityTextMesh.rectTransform.sizeDelta = new(1000, WatermarkQualityTextMesh.rectTransform.sizeDelta.y);
@@ -198,14 +198,14 @@ namespace Hikaria.NetworkQualityTracker.Features
                         int index = bar.PlayerSlotIndex;
                         if (!PageLoadoutQualityTextMeshes.ContainsKey(index))
                         {
-                            var textMesh = GameObject.Instantiate(WatermarkTextPrefab, bar.m_hasPlayerRoot.transform, false);
+                            var textMesh = UnityEngine.Object.Instantiate(WatermarkTextPrefab, bar.m_hasPlayerRoot.transform, false);
                             textMesh.transform.localPosition = new(1525f + s_PageLoadoutOffsetX, -515f + s_PageLoadoutOffsetY, 0);
                             textMesh.fontStyle &= ~FontStyles.UpperCase;
                             textMesh.alignment = TextAlignmentOptions.TopLeft;
                             textMesh.fontSize = 25;
                             textMesh.rectTransform.sizeDelta = new(1000, textMesh.rectTransform.sizeDelta.y);
                             textMesh.color = new(1f, 1f, 1f, 0.7059f);
-                            textMesh.SetText("");
+                            textMesh.SetText(string.Empty);
                             PageLoadoutQualityTextMeshes[index] = textMesh;
                         }
                     }
@@ -218,121 +218,13 @@ namespace Hikaria.NetworkQualityTracker.Features
                 }
             }
         }
-
-        [ArchivePatch(typeof(SNet_GlobalManager), nameof(SNet_GlobalManager.Setup))]
-        private class SNet_GlobalManager__Setup__Patch
-        {
-            private static void Postfix()
-            {
-                SNet_Events.OnPlayerEvent += new Action<SNet_Player, SNet_PlayerEvent, SNet_PlayerEventReason>(OnPlayerEvent);
-                SNet_Events.OnMasterChanged += new Action(OnMasterChanged);
-            }
-        }
-
-        private static pBroadcastListenHeartbeat broadcastData = new();
-
-        internal static void BroadcastListenHeartbeat()
-        {
-            NetworkAPI.InvokeEvent(typeof(pBroadcastListenHeartbeat).FullName, broadcastData, SNet_ChannelType.GameNonCritical);
-        }
-
-        private static void OnPlayerEvent(SNet_Player player, SNet_PlayerEvent playerEvent, SNet_PlayerEventReason reason)
-        {
-            NetworkQualityUpdater.StartBroadcast();
-            switch (playerEvent)
-            {
-                case SNet_PlayerEvent.PlayerLeftSessionHub:
-                case SNet_PlayerEvent.PlayerAgentDeSpawned:
-                    UnregisterListener(player);
-                    break;
-                case SNet_PlayerEvent.PlayerAgentSpawned:
-                    if (player.IsLocal)
-                        RegisterListener(player);
-                    break;
-            }
-        }
         #endregion
 
         #region FeatureMethods
         public override void Init()
         {
             LoaderWrapper.ClassInjector.RegisterTypeInIl2Cpp<NetworkQualityUpdater>();
-            NetworkAPI.RegisterEvent<pHeartbeat>(typeof(pHeartbeat).FullName, OnReceiveHeartbeat);
-            NetworkAPI.RegisterEvent<pBroadcastListenHeartbeat>(typeof(pBroadcastListenHeartbeat).FullName, OnReceiveBroadcastListenHeartbeat);
-            NetworkAPI.RegisterEvent<pHeartbeatAck>(typeof(pHeartbeatAck).FullName, OnReceiveHeartbeatAck);
-            NetworkAPI.RegisterEvent<pToMasterNetworkQualityReport>(typeof(pToMasterNetworkQualityReport).FullName, OnReceiveNetworkQualityReport);
-        }
-        #endregion
-
-        #region NetworkStructsHandler
-
-        private static void OnReceiveHeartbeat(ulong senderID, pHeartbeat data)
-        {
-            if (NetworkQualityDataLookup.TryGetValue(senderID, out var quality))
-            {
-                quality.ReceiveHeartbeat(data);
-            }
-        }
-
-        private static void OnReceiveHeartbeatAck(ulong senderID, pHeartbeatAck data)
-        {
-            if (NetworkQualityDataLookup.TryGetValue(senderID, out var quality))
-            {
-                quality.ReceiveHeartbeatAck(data);
-            }
-        }
-
-        private static void OnReceiveBroadcastListenHeartbeat(ulong senderID, pBroadcastListenHeartbeat data)
-        {
-            if (SNet.Core.TryGetPlayer(senderID, out var player, true))
-            {
-                RegisterListener(player);
-            }
-        }
-
-        private static void OnReceiveNetworkQualityReport(ulong senderID, pToMasterNetworkQualityReport data)
-        {
-            if (NetworkQualityDataLookup.TryGetValue(senderID, out var quality))
-            {
-                quality.ReceiveNetworkQualityReport(data);
-            }
-        }
-        #endregion
-
-        #region NetworkStructs
-        public struct pBroadcastListenHeartbeat
-        {
-        }
-
-        public struct pHeartbeat
-        {
-            public pHeartbeat(short index) { Index = index; }
-
-            public short Index = 0;
-        }
-
-        public struct pToMasterNetworkQualityReport
-        {
-            public pToMasterNetworkQualityReport(short toMasterLatency, short toMasterNetworkJitter, short toMasterPacketLossRate)
-            {
-                ToMasterLatency = toMasterLatency;
-                ToMasterPacketLoss = toMasterPacketLossRate;
-                ToMasterNetworkJitter = toMasterNetworkJitter;
-            }
-
-            public short ToMasterLatency;
-            public short ToMasterPacketLoss;
-            public short ToMasterNetworkJitter;
-        }
-
-        public struct pHeartbeatAck
-        {
-            public pHeartbeatAck(short index)
-            {
-                Index = index;
-            }
-
-            public short Index = 0;
+            NetworkQualityManager.Setup();
         }
         #endregion
     }

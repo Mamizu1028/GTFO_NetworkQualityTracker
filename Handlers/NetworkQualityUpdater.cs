@@ -1,9 +1,9 @@
 ﻿using BepInEx.Unity.IL2CPP.Utils;
-using GTFO.API;
 using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
 using System.Collections;
 using System.Text;
+using TheArchive.Utilities;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 
@@ -14,12 +14,8 @@ public class NetworkQualityUpdater : MonoBehaviour
     public static NetworkQualityUpdater Instance { get; private set; }
 
     private const float TextUpdateInterval = 0.5f;
-
     private const float HeartbeatSendInterval = 0.5f;
-
     private const float ToMasterQualityReportSendInterval = 0.5f;
-
-    private static Coroutine _broadcastCoroutine;
 
     private void Awake()
     {
@@ -41,29 +37,8 @@ public class NetworkQualityUpdater : MonoBehaviour
         {
             foreach (var data in NetworkQualityManager.NetworkQualityDataLookup.Values)
             {
-                data.CheckConnection();
+                data.UpdateConnectionCheck();
             }
-            yield return yielder;
-        }
-    }
-
-    public static void StartBroadcast()
-    {
-        if (_broadcastCoroutine != null)
-        {
-            Instance.StopCoroutine(_broadcastCoroutine);
-        }
-        _broadcastCoroutine = Instance.StartCoroutine(BroadcastCoroutine());
-    }
-
-    private static IEnumerator BroadcastCoroutine()
-    {
-        var yielder = new WaitForSecondsRealtime(1f);
-        int second = 60;
-        while (second-- > 0)
-        {
-            BroadcastListenHeartbeat();
-            second--;
             yield return yielder;
         }
     }
@@ -73,7 +48,10 @@ public class NetworkQualityUpdater : MonoBehaviour
         var yielder = new WaitForSecondsRealtime(HeartbeatSendInterval);
         while (true)
         {
-            NetworkQualityManager.SendHeartbeats();
+            if (SNet.IsInLobby)
+            {
+                NetworkQualityManager.SendHeartbeats();
+            }
             yield return yielder;
         }
     }
@@ -97,32 +75,32 @@ public class NetworkQualityUpdater : MonoBehaviour
                         NetworkQualityManager.WatermarkQualityTextMesh.ForceMeshUpdate();
                     }
                 }
-                if (s_ShowInPageLoadout && NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(data.Owner.PlayerSlotIndex(), out var textMesh))
+                if (s_ShowInPageLoadout && NetworkQualityManager.PlayerCharacterIndexLookup.TryGetValue(data.Owner.Lookup, out var index) && NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(index, out var textMesh))
                 {
                     if (!data.Owner.IsLocal && AnyShowToLocal)
                     {
                         data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
-                        sb.Append($"{Settings.InfoSettings.ToLocalHint}\n");
-
+                        sb.AppendLine($"{Settings.InfoSettings.ToLocalHint}");
+                        if (!data.IsAlive)
+                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>连接已断开</color>");
                         if (ShowToLocalLatency)
-                            sb.Append($"{toLocalLatencyText}\n");
+                            sb.AppendLine($"{toLocalLatencyText}");
                         if (ShowToLocalNetworkJitter)
-                            sb.Append($"{toLocalJitterText}\n");
+                            sb.AppendLine($"{toLocalJitterText}");
                         if (ShowToLocalPacketLoss)
-                            sb.Append($"{toLocalPacketLossRateText}\n");
+                            sb.AppendLine($"{toLocalPacketLossRateText}");
                     }
 
                     if (NetworkQualityManager.IsMasterHasHeartbeat && !SNet.IsMaster && !data.Owner.IsMaster && AnyShowToMaster)
                     {
-                        sb.Append($"{Settings.InfoSettings.ToMasterHint}\n");
-
+                        sb.AppendLine($"{Settings.InfoSettings.ToMasterHint}");
                         if (ShowToMasterLatency)
-                            sb.Append($"{toMasterLatencyText}\n");
+                            sb.AppendLine($"{toMasterLatencyText}");
                         if (ShowToMasterNetworkJitter)
-                            sb.Append($"{toMasterJitterText}\n");
+                            sb.AppendLine($"{toMasterJitterText}");
                         if (ShowToMasterPacketLoss)
-                            sb.Append($"{toMasterPacketLossRateText}\n");
+                            sb.AppendLine($"{toMasterPacketLossRateText}");
                     }
 
                     textMesh.SetText(sb.ToString());
@@ -130,6 +108,20 @@ public class NetworkQualityUpdater : MonoBehaviour
                     sb.Clear();
                 }
             }
+            yield return yielder;
+        }
+    }
+
+    private static IEnumerator SendToMasterQualityCoroutine()
+    {
+        var yielder = new WaitForSecondsRealtime(ToMasterQualityReportSendInterval);
+        while (true)
+        {
+            if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
+            {
+                quality.UpdateToMasterQuality();
+            }
+
             yield return yielder;
         }
     }
@@ -142,21 +134,4 @@ public class NetworkQualityUpdater : MonoBehaviour
     public static bool ShowToMasterPacketLoss = true;
     private static bool AnyShowToLocal => ShowToLocalLatency || ShowToLocalNetworkJitter || ShowToLocalPacketLoss;
     private static bool AnyShowToMaster => ShowToMasterLatency || ShowToMasterNetworkJitter || ShowToMasterPacketLoss;
-
-    private static IEnumerator SendToMasterQualityCoroutine()
-    {
-        var yielder = new WaitForSecondsRealtime(ToMasterQualityReportSendInterval);
-        while (true)
-        {
-            if (!SNet.IsMaster && NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
-            {
-                NetworkAPI.InvokeEvent(typeof(pToMasterNetworkQualityReport).FullName, quality.GetToMasterReportData(), NetworkQualityManager.HeartbeatListeners.Values.ToList(), SNet_ChannelType.GameNonCritical);
-            }
-            if (NetworkQualityManager.IsMasterHasHeartbeat && NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var masterQuality))
-            {
-                masterQuality.UpdateToMasterQuality();
-            }
-            yield return yielder;
-        }
-    }
 }
