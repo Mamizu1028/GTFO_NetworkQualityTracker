@@ -238,10 +238,11 @@ public static class NetworkQualityManager
                 HeartbeatStartIndex = data.Index;
                 HeartbeatStarted = true;
             }
-
             var heartbeatIndex = data.Index;
+            if (!HeartbeatSendTimeLookup.TryGetValue(heartbeatIndex, out var sendTime))
+                return;
             var LastToLocalLatency = ToLocalLatency;
-            ToLocalLatency = (int)(CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
+            ToLocalLatency = (int)(CurrentTime - sendTime);
             if (NetworkJitterQueue.Count == NetworkJitterQueueMaxCap)
             {
                 NetworkJitterQueue.Dequeue();
