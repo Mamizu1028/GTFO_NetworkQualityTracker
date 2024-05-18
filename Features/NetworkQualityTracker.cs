@@ -157,7 +157,7 @@ namespace Hikaria.NetworkQualityTracker.Features
             {
                 if (!IsSetup)
                 {
-                    NetworkQualityUpdater.StartCoroutine();
+                    NetworkQualityUpdater.StartAllCoroutines();
                     IsSetup = true;
                 }
             }

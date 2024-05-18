@@ -1,11 +1,14 @@
 ﻿using Hikaria.Core;
 using Hikaria.Core.SNetworkExt;
+using Hikaria.NetworkQualityTracker.Handlers;
 using SNetwork;
+using System.Transactions;
 using TheArchive.Utilities;
 using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 using static Hikaria.NetworkQualityTracker.Utils.Utils;
+using static UnityEngine.UI.GridLayoutGroup;
 using Version = Hikaria.Core.Version;
 
 namespace Hikaria.NetworkQualityTracker.Managers;
@@ -64,7 +67,7 @@ public static class NetworkQualityManager
     {
         if (handle == SNet_SlotHandleType.Assign || handle == SNet_SlotHandleType.Set)
         {
-            PlayerCharacterIndexLookup[player.Lookup] = player.CharacterSlot?.index ?? -1;
+            PlayerSlotIndexLookup[player.Lookup] = player.PlayerSlot?.index ?? -1;
         }
     }
 
@@ -127,7 +130,7 @@ public static class NetworkQualityManager
 
     public static void UnregisterListener(SNet_Player player)
     {
-        if (PlayerCharacterIndexLookup.TryGetValue(player.Lookup, out var index) && PageLoadoutQualityTextMeshes.TryGetValue(index, out var text))
+        if (PlayerSlotIndexLookup.TryGetValue(player.Lookup, out var index) && PageLoadoutQualityTextMeshes.TryGetValue(index, out var text))
         {
             text.SetText(string.Empty);
             text.ForceMeshUpdate();
@@ -148,15 +151,33 @@ public static class NetworkQualityManager
     public static void SendHeartbeats()
     {
         HeartbeatSendIndex++;
+        HeartbeatSendTimeLookup.Remove(HeartbeatSendIndex - 10);
         HeartbeatSendTimeLookup[HeartbeatSendIndex] = CurrentTime;
         heatbeat.Index = HeartbeatSendIndex;
         s_HeartbeatAction.Do(heatbeat);
+        foreach (var key in NetworkQualityDataLookup.Keys)
+        {
+            var data = NetworkQualityDataLookup[key];
+            if (!data.Owner.IsLocal)
+            {
+                data.CheckConnection();
+                if (data.Owner.IsMaster)
+                {
+                    var localQuality = NetworkQualityDataLookup[SNet.LocalPlayer.Lookup];
+                    localQuality.ToMasterLatency = data.ToLocalLatency;
+                    localQuality.ToMasterNetworkJitter = data.ToLocalNetworkJitter;
+                    localQuality.ToMasterPacketLossRate = data.ToLocalPacketLossRate;
+                    localQuality.IsToMasterAlive = data.IsAlive;
+                    s_ToMasterNetworkQualityReportAction.Do(localQuality.GetToMasterReportData());
+                }
+            }
+        }
     }
 
     public static bool IsMasterHasHeartbeat { get; private set; }
 
     public static Dictionary<ulong, NetworkQualityData> NetworkQualityDataLookup = new();
-    public static Dictionary<ulong, int> PlayerCharacterIndexLookup = new();
+    public static Dictionary<ulong, int> PlayerSlotIndexLookup = new();
 
     public static long CurrentTime => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -168,46 +189,25 @@ public static class NetworkQualityManager
     public static SNetExt_Packet<pHeartbeatAck> s_HeartbeatAckPacket;
     public static SNetExt_BroadcastAction<pToMasterNetworkQualityReport> s_ToMasterNetworkQualityReportAction;
 
-
     private static pHeartbeat heatbeat = new();
 
-    internal static Dictionary<long, long> HeartbeatSendTimeLookup = new(21600);
+    internal static Dictionary<long, long> HeartbeatSendTimeLookup = new();
     internal static long HeartbeatSendIndex = 0L;
 
     public static Color COLOR_GREEN { get; private set; } = new(0f, 0.7206f, 0f, 0.3137f);
     public static Color COLOR_RED { get; private set; } = new(0.7206f, 0f, 0f, 0.3137f);
 
-    public static void UpdateLocalToMasterQuality()
-    {
-        if (!IsMasterHasHeartbeat) return;
-
-        if (NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var quality))
-        {
-            if (quality.Owner.IsLocal) // SNet.IsMaster
-            {
-                quality.ToMasterLatency = 0;
-                quality.ToMasterNetworkJitter = 0;
-                quality.ToMasterPacketLossRate = 0;
-                quality.IsToMasterAlive = true;
-            }
-            else if (NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var localQuality)) // Owner.IsMaster
-            {
-                localQuality.ToMasterLatency = quality.ToLocalLatency;
-                localQuality.ToMasterNetworkJitter = quality.ToLocalNetworkJitter;
-                localQuality.ToMasterPacketLossRate = quality.ToLocalPacketLossRate;
-                localQuality.IsToMasterAlive = quality.IsAlive;
-                s_ToMasterNetworkQualityReportAction.Do(localQuality.GetToMasterReportData());
-            }
-        }
-    }
-
-
     public class NetworkQualityData
     {
         public NetworkQualityData(SNet_Player player) { Owner = player; }
 
-        public void EnqueuePacketReceived(bool received)
+        public void EnqueuePacket(long index, bool received)
         {
+            PacketReceiveLookup.Remove(index - 100);
+            if (!PacketReceiveLookup.TryAdd(index, received))
+            {
+                return;
+            }
             if (PacketReceiveQueue.Count == PacketReceiveQueueMaxCap)
             {
                 bool dequeuedPacket = PacketReceiveQueue.Dequeue();
@@ -222,7 +222,6 @@ public static class NetworkQualityManager
                 PacketLossCount++;
             }
         }
-        private int PacketLossCount = 0;
 
         public void ReceiveHeartbeat(pHeartbeat data)
         {
@@ -231,49 +230,35 @@ public static class NetworkQualityManager
 
         public void ReceiveHeartbeatAck(pHeartbeatAck data)
         {
-            if (LastReceivedHeartbeatAckIndex == -1)
+            if (!HeartbeatStarted)
             {
                 LastReceivedTime = CurrentTime;
-                LastReceivedHeartbeatAckIndex = data.Index;
                 PacketReceiveQueue.Clear();
-                PacketLossLookup.Clear();
+                PacketReceiveLookup.Clear();
                 PacketLossCount = 0;
                 LatencyHistory.Clear();
                 NetworkJitterQueue.Clear();
-                return;
+                HeartbeatStartIndex = data.Index;
+                HeartbeatStarted = true;
             }
 
             var heartbeatIndex = data.Index;
             LatencyHistory.TryPeek(out var LastToLocalLatency);
             ToLocalLatency = (int)(CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
-            if (LatencyHistory.Count >= LatencyHistoryMaxCap)
+            if (LatencyHistory.Count == LatencyHistoryMaxCap)
             {
                 LatencyHistory.Dequeue();
             }
             LatencyHistory.Enqueue(ToLocalLatency);
 
-            if (NetworkJitterQueue.Count >= NetworkJitterQueueMaxCap)
+            if (NetworkJitterQueue.Count == NetworkJitterQueueMaxCap)
             {
                 NetworkJitterQueue.Dequeue();
             }
             NetworkJitterQueue.Enqueue(Math.Abs(ToLocalLatency - LastToLocalLatency));
             ToLocalNetworkJitter = NetworkJitterQueue.Max();
 
-            if (!PacketLossLookup.Contains(data.Index))
-            {
-                var expectedIndex = LastReceivedHeartbeatAckIndex + 1;
-                if (heartbeatIndex > expectedIndex)
-                {
-                    for (var i = expectedIndex; i < heartbeatIndex; i++)
-                    {
-                        PacketLossLookup.Add(i);
-                        EnqueuePacketReceived(false);
-                    }
-                }
-                EnqueuePacketReceived(true);
-            }
-
-            LastReceivedHeartbeatAckIndex = heartbeatIndex;
+            EnqueuePacket(heartbeatIndex, true);
             LastReceivedTime = CurrentTime;
         }
 
@@ -285,11 +270,9 @@ public static class NetworkQualityManager
             IsToMasterAlive = data.IsToMasterAlive;
         }
 
-        public void UpdateConnectionCheck()
+        public void CheckConnection()
         {
-            if (Owner.IsLocal) return;
-
-            IsAlive = CurrentTime - LastReceivedTime <= 1000;
+            IsAlive = CurrentTime - LastReceivedTime <= NetworkQualityUpdater.HeartbeatSendInterval * 4000;
             if (Owner.IsMaster)
             {
                 if (NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var data))
@@ -297,12 +280,15 @@ public static class NetworkQualityManager
                     data.IsToMasterAlive = IsAlive;
                 }
             }
-            if (HeartbeatSendIndex - LastReceivedHeartbeatAckIndex > 2)
+
+            var heartbeatIndexToCheck = HeartbeatSendIndex - 4;
+            if (heartbeatIndexToCheck < HeartbeatStartIndex || !HeartbeatStarted)
+                return;
+            if (HeartbeatSendTimeLookup.TryGetValue(heartbeatIndexToCheck, out var time))
             {
-                for (var i = LastReceivedHeartbeatAckIndex; i < HeartbeatSendIndex - 2; i++)
+                if (!PacketReceiveLookup.ContainsKey(heartbeatIndexToCheck) && CurrentTime - time > NetworkQualityUpdater.HeartbeatSendInterval * 4000)
                 {
-                    PacketLossLookup.Add(i);
-                    EnqueuePacketReceived(false);
+                    EnqueuePacket(heartbeatIndexToCheck, false);
                 }
             }
         }
@@ -318,7 +304,7 @@ public static class NetworkQualityManager
             ToMasterLatency = 0;
             ToMasterPacketLossRate = 0;
             ToMasterNetworkJitter = 0;
-            IsToMasterAlive = false;
+            IsToMasterAlive = SNet.IsMaster;
         }
 
         public void GetToLocalReportText(out string toLocalLatencyText, out string toLocalJitterText, out string toLocalPacketLossRateText)
@@ -374,7 +360,7 @@ public static class NetworkQualityManager
         private Queue<int> LatencyHistory = new(LatencyHistoryMaxCap);
         private Queue<int> NetworkJitterQueue = new(NetworkJitterQueueMaxCap);
         private Queue<bool> PacketReceiveQueue = new(PacketReceiveQueueMaxCap);
-        private HashSet<long> PacketLossLookup = new(PacketReceiveQueueMaxCap);
+        private Dictionary<long, bool> PacketReceiveLookup = new(PacketReceiveQueueMaxCap);
 
         public SNet_Player Owner { get; private set; }
         public bool IsAlive { get; private set; }
@@ -382,7 +368,9 @@ public static class NetworkQualityManager
 
         private static pHeartbeatAck heatbeatAck = new();
 
-        private long LastReceivedHeartbeatAckIndex = -1;
+        private bool HeartbeatStarted;
+        private long HeartbeatStartIndex = -1;
+        private int PacketLossCount = 0;
         private long LastReceivedTime = -1;
         private const int LatencyHistoryMaxCap = 50;
         private const int NetworkJitterQueueMaxCap = 20;

@@ -6,7 +6,6 @@ using System.Text;
 using TheArchive.Utilities;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
-using static UnityEngine.UI.GridLayoutGroup;
 
 namespace Hikaria.NetworkQualityTracker.Handlers;
 
@@ -14,34 +13,26 @@ public class NetworkQualityUpdater : MonoBehaviour
 {
     public static NetworkQualityUpdater Instance { get; private set; }
 
-    private const float TextUpdateInterval = 0.5f;
-    private const float HeartbeatSendInterval = 0.5f;
-    private const float ToMasterQualityReportSendInterval = 0.5f;
+    public const float TextUpdateInterval = 0.5f;
+    public const float HeartbeatSendInterval = 0.5f;
+    public const float ToMasterQualityReportSendInterval = 0.5f;
+    public const float ConnectionWatchdogCheckInterval = 1f;
 
     private void Awake()
     {
         Instance = this;
     }
 
-    public static void StartCoroutine()
+    public static void StartAllCoroutines()
     {
-        Instance.StartCoroutine(SendHeartbeatCoroutine());
-        Instance.StartCoroutine(SendToMasterQualityCoroutine());
-        Instance.StartCoroutine(TextUpdateCoroutine());
-        Instance.StartCoroutine(WatchdogCoroutine());
+        Instance.StartCoroutine(StartAllCoroutinesCoroutine());
     }
 
-    private static IEnumerator WatchdogCoroutine()
+    private static IEnumerator StartAllCoroutinesCoroutine()
     {
-        var yielder = new WaitForSecondsRealtime(1f);
-        while (true)
-        {
-            foreach (var data in NetworkQualityManager.NetworkQualityDataLookup.Values)
-            {
-                data.UpdateConnectionCheck();
-            }
-            yield return yielder;
-        }
+        Instance.StartCoroutine(SendHeartbeatCoroutine());
+        yield return new WaitForFixedUpdate();
+        Instance.StartCoroutine(TextUpdateCoroutine());
     }
 
     private static IEnumerator SendHeartbeatCoroutine()
@@ -76,7 +67,7 @@ public class NetworkQualityUpdater : MonoBehaviour
                         NetworkQualityManager.WatermarkQualityTextMesh.ForceMeshUpdate();
                     }
                 }
-                if (s_ShowInPageLoadout && NetworkQualityManager.PlayerCharacterIndexLookup.TryGetValue(data.Owner.Lookup, out var index) && NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(index, out var textMesh))
+                if (s_ShowInPageLoadout && NetworkQualityManager.PlayerSlotIndexLookup.TryGetValue(data.Owner.Lookup, out var index) && NetworkQualityManager.PageLoadoutQualityTextMeshes.TryGetValue(index, out var textMesh))
                 {
                     if (!data.Owner.IsLocal && AnyShowToLocal)
                     {
@@ -91,6 +82,7 @@ public class NetworkQualityUpdater : MonoBehaviour
                             sb.AppendLine($"{toLocalJitterText}");
                         if (ShowToLocalPacketLoss)
                             sb.AppendLine($"{toLocalPacketLossRateText}");
+                        sb.AppendLine();
                     }
 
                     if (NetworkQualityManager.IsMasterHasHeartbeat && !SNet.IsMaster && !data.Owner.IsMaster && AnyShowToMaster)
@@ -110,19 +102,6 @@ public class NetworkQualityUpdater : MonoBehaviour
                     textMesh.ForceMeshUpdate();
                     sb.Clear();
                 }
-            }
-            yield return yielder;
-        }
-    }
-
-    private static IEnumerator SendToMasterQualityCoroutine()
-    {
-        var yielder = new WaitForSecondsRealtime(ToMasterQualityReportSendInterval);
-        while (true)
-        {
-            if (NetworkQualityManager.IsMasterHasHeartbeat)
-            {
-                NetworkQualityManager.UpdateLocalToMasterQuality();
             }
             yield return yielder;
         }
