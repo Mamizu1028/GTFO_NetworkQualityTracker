@@ -2,13 +2,11 @@
 using Hikaria.Core.SNetworkExt;
 using Hikaria.NetworkQualityTracker.Handlers;
 using SNetwork;
-using System.Transactions;
 using TheArchive.Utilities;
 using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 using static Hikaria.NetworkQualityTracker.Utils.Utils;
-using static UnityEngine.UI.GridLayoutGroup;
 using Version = Hikaria.Core.Version;
 
 namespace Hikaria.NetworkQualityTracker.Managers;
