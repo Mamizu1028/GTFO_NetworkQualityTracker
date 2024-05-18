@@ -241,8 +241,11 @@ public static class NetworkQualityManager
             }
 
             var heartbeatIndex = data.Index;
-            LatencyHistory.TryPeek(out var LastToLocalLatency);
             ToLocalLatency = (int)(CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
+            if (!LatencyHistory.TryPeek(out var LastToLocalLatency))
+            {
+                LastToLocalLatency = ToLocalLatency;
+            }
             if (LatencyHistory.Count == LatencyHistoryMaxCap)
             {
                 LatencyHistory.Dequeue();
