@@ -6,6 +6,7 @@ using System.Text;
 using TheArchive.Utilities;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
+using static UnityEngine.UI.GridLayoutGroup;
 
 namespace Hikaria.NetworkQualityTracker.Handlers;
 
@@ -119,11 +120,10 @@ public class NetworkQualityUpdater : MonoBehaviour
         var yielder = new WaitForSecondsRealtime(ToMasterQualityReportSendInterval);
         while (true)
         {
-            if (NetworkQualityManager.NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
+            if (NetworkQualityManager.IsMasterHasHeartbeat)
             {
-                quality.UpdateToMasterQuality();
+                NetworkQualityManager.UpdateLocalToMasterQuality();
             }
-
             yield return yielder;
         }
     }

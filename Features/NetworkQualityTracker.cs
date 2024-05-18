@@ -57,12 +57,9 @@ namespace Hikaria.NetworkQualityTracker.Features
             }
 
             [FSInline]
-            [FSDisplayName("显示信息")]
             public ShowInfoSetting InfoSettings { get; set; } = new();
 
             [FSInline]
-            [FSHeader("位置设置")]
-            [FSDisplayName("位置设置")]
             public PositionSetting Position { get; set; } = new();
         }
 

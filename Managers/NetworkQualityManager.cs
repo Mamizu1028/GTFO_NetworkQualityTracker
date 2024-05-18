@@ -177,6 +177,30 @@ public static class NetworkQualityManager
     public static Color COLOR_GREEN { get; private set; } = new(0f, 0.7206f, 0f, 0.3137f);
     public static Color COLOR_RED { get; private set; } = new(0.7206f, 0f, 0f, 0.3137f);
 
+    public static void UpdateLocalToMasterQuality()
+    {
+        if (!IsMasterHasHeartbeat) return;
+
+        if (NetworkQualityDataLookup.TryGetValue(SNet.Master.Lookup, out var quality))
+        {
+            if (quality.Owner.IsLocal) // SNet.IsMaster
+            {
+                quality.ToMasterLatency = 0;
+                quality.ToMasterNetworkJitter = 0;
+                quality.ToMasterPacketLossRate = 0;
+                quality.IsToMasterAlive = true;
+            }
+            else if (NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var localQuality)) // Owner.IsMaster
+            {
+                localQuality.ToMasterLatency = quality.ToLocalLatency;
+                localQuality.ToMasterNetworkJitter = quality.ToLocalNetworkJitter;
+                localQuality.ToMasterPacketLossRate = quality.ToLocalPacketLossRate;
+                localQuality.IsToMasterAlive = quality.IsAlive;
+                s_ToMasterNetworkQualityReportAction.Do(localQuality.GetToMasterReportData());
+            }
+        }
+    }
+
 
     public class NetworkQualityData
     {
@@ -184,21 +208,21 @@ public static class NetworkQualityManager
 
         public void EnqueuePacketReceived(bool received)
         {
-            if (PacketReceiveQueue.Count == 100)
+            if (PacketReceiveQueue.Count == PacketReceiveQueueMaxCap)
             {
                 bool dequeuedPacket = PacketReceiveQueue.Dequeue();
                 if (!dequeuedPacket)
                 {
-                    packetLossCount--;
+                    PacketLossCount--;
                 }
             }
             PacketReceiveQueue.Enqueue(received);
             if (!received)
             {
-                packetLossCount++;
+                PacketLossCount++;
             }
         }
-        private int packetLossCount = 0;
+        private int PacketLossCount = 0;
 
         public void ReceiveHeartbeat(pHeartbeat data)
         {
@@ -209,8 +233,16 @@ public static class NetworkQualityManager
         {
             if (LastReceivedHeartbeatAckIndex == -1)
             {
+                LastReceivedTime = CurrentTime;
                 LastReceivedHeartbeatAckIndex = data.Index;
+                PacketReceiveQueue.Clear();
+                PacketLossLookup.Clear();
+                PacketLossCount = 0;
+                LatencyHistory.Clear();
+                NetworkJitterQueue.Clear();
+                return;
             }
+
             var heartbeatIndex = data.Index;
             LatencyHistory.TryPeek(out var LastToLocalLatency);
             ToLocalLatency = (int)(CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
@@ -224,7 +256,6 @@ public static class NetworkQualityManager
             {
                 NetworkJitterQueue.Dequeue();
             }
-
             NetworkJitterQueue.Enqueue(Math.Abs(ToLocalLatency - LastToLocalLatency));
             ToLocalNetworkJitter = NetworkJitterQueue.Max();
 
@@ -235,6 +266,7 @@ public static class NetworkQualityManager
                 {
                     for (var i = expectedIndex; i < heartbeatIndex; i++)
                     {
+                        PacketLossLookup.Add(i);
                         EnqueuePacketReceived(false);
                     }
                 }
@@ -242,10 +274,6 @@ public static class NetworkQualityManager
             }
 
             LastReceivedHeartbeatAckIndex = heartbeatIndex;
-
-            if (!Owner.IsLocal)
-                UpdateToMasterQuality();
-
             LastReceivedTime = CurrentTime;
         }
 
@@ -269,7 +297,6 @@ public static class NetworkQualityManager
                     data.IsToMasterAlive = IsAlive;
                 }
             }
-
             if (HeartbeatSendIndex - LastReceivedHeartbeatAckIndex > 2)
             {
                 for (var i = LastReceivedHeartbeatAckIndex; i < HeartbeatSendIndex - 2; i++)
@@ -292,25 +319,6 @@ public static class NetworkQualityManager
             ToMasterPacketLossRate = 0;
             ToMasterNetworkJitter = 0;
             IsToMasterAlive = false;
-        }
-
-        public void UpdateToMasterQuality()
-        {
-            if (!IsMasterHasHeartbeat || !Owner.IsMaster) return;
-
-            if (Owner.IsLocal)
-            {
-                ToMasterLatency = 0;
-                ToMasterNetworkJitter = 0;
-                ToMasterPacketLossRate = 0;
-            }
-            else if (NetworkQualityDataLookup.TryGetValue(SNet.LocalPlayer.Lookup, out var quality))
-            {
-                quality.ToMasterLatency = ToLocalLatency;
-                quality.ToMasterNetworkJitter = ToLocalNetworkJitter;
-                quality.ToMasterPacketLossRate = ToLocalPacketLossRate;
-                s_ToMasterNetworkQualityReportAction.Do(quality.GetToMasterReportData());
-            }
         }
 
         public void GetToLocalReportText(out string toLocalLatencyText, out string toLocalJitterText, out string toLocalPacketLossRateText)
@@ -354,14 +362,14 @@ public static class NetworkQualityManager
         public string ToLocalPacketLossColorHexString => GetColorHexString(0, 10, ToLocalPacketLossRate);
         public string ToMasterLatencyColorHexString => GetColorHexString(60, 150, ToMasterLatency);
         public string ToMasterNetworkJitterColorHexString => GetColorHexString(20, 100, ToMasterNetworkJitter);
-        public string ToMasterPacketLossColorHexString => GetColorHexString(0, 5, ToMasterPacketLossRate);
+        public string ToMasterPacketLossColorHexString => GetColorHexString(0, 10, ToMasterPacketLossRate);
 
-        public int ToLocalPacketLossRate => (int)(PacketReceiveQueue.Count == 0 ? 0U : (packetLossCount * 100f / PacketReceiveQueue.Count));
+        public int ToLocalPacketLossRate => PacketReceiveQueue.Count == 0 ? 0 : (int)(PacketLossCount * 100f / PacketReceiveQueue.Count);
         public int ToLocalLatency { get; private set; } = 0;
         public int ToLocalNetworkJitter { get; private set; } = 0;
-        public int ToMasterLatency { get; private set; } = 0;
-        public int ToMasterNetworkJitter { get; private set; } = 0;
-        public int ToMasterPacketLossRate { get; private set; } = 0;
+        public int ToMasterLatency { get; internal set; } = 0;
+        public int ToMasterNetworkJitter { get; internal set; } = 0;
+        public int ToMasterPacketLossRate { get; internal set; } = 0;
 
         private Queue<int> LatencyHistory = new(LatencyHistoryMaxCap);
         private Queue<int> NetworkJitterQueue = new(NetworkJitterQueueMaxCap);
@@ -370,12 +378,12 @@ public static class NetworkQualityManager
 
         public SNet_Player Owner { get; private set; }
         public bool IsAlive { get; private set; }
-        public bool IsToMasterAlive { get; private set; }
+        public bool IsToMasterAlive { get; internal set; }
 
         private static pHeartbeatAck heatbeatAck = new();
 
         private long LastReceivedHeartbeatAckIndex = -1;
-        private long LastReceivedTime = CurrentTime;
+        private long LastReceivedTime = -1;
         private const int LatencyHistoryMaxCap = 50;
         private const int NetworkJitterQueueMaxCap = 20;
         private const int PacketReceiveQueueMaxCap = 100;
