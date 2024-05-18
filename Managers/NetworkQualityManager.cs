@@ -74,6 +74,12 @@ public static class NetworkQualityManager
         if (player.IsMaster)
         {
             IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, Miniver);
+            if (!IsMasterHasHeartbeat)
+            {
+                WatermarkQualityTextMesh.SetText(string.Empty);
+                WatermarkQualityTextMesh.ForceMeshUpdate();
+            }
+            WatermarkQualityTextMesh?.gameObject.SetActive(s_ShowInWatermark && !SNet.IsMaster && IsMasterHasHeartbeat);
         }
     }
 
@@ -85,7 +91,7 @@ public static class NetworkQualityManager
             WatermarkQualityTextMesh.SetText(string.Empty);
             WatermarkQualityTextMesh.ForceMeshUpdate();
         }
-        WatermarkQualityTextMesh?.gameObject.SetActive(!SNet.Master && IsMasterHasHeartbeat && s_ShowInWatermark);
+        WatermarkQualityTextMesh?.gameObject.SetActive(s_ShowInWatermark && !SNet.IsMaster && IsMasterHasHeartbeat);
         foreach (var data in NetworkQualityDataLookup.Values)
         {
             data.OnMasterChanged();
