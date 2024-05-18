@@ -47,7 +47,7 @@ public static class NetworkQualityManager
         }
     }
 
-    private static readonly Version Miniver = new("1.1.0");
+    private static readonly Version Miniver = new("1.2.0");
 
     public static void Setup()
     {
