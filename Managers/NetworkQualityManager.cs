@@ -234,24 +234,14 @@ public static class NetworkQualityManager
                 PacketReceiveQueue.Clear();
                 PacketReceiveLookup.Clear();
                 PacketLossCount = 0;
-                LatencyHistory.Clear();
                 NetworkJitterQueue.Clear();
                 HeartbeatStartIndex = data.Index;
                 HeartbeatStarted = true;
             }
 
             var heartbeatIndex = data.Index;
+            var LastToLocalLatency = ToLocalLatency;
             ToLocalLatency = (int)(CurrentTime - HeartbeatSendTimeLookup[heartbeatIndex]);
-            if (!LatencyHistory.TryPeek(out var LastToLocalLatency))
-            {
-                LastToLocalLatency = ToLocalLatency;
-            }
-            if (LatencyHistory.Count == LatencyHistoryMaxCap)
-            {
-                LatencyHistory.Dequeue();
-            }
-            LatencyHistory.Enqueue(ToLocalLatency);
-
             if (NetworkJitterQueue.Count == NetworkJitterQueueMaxCap)
             {
                 NetworkJitterQueue.Dequeue();
@@ -358,7 +348,6 @@ public static class NetworkQualityManager
         public int ToMasterNetworkJitter { get; internal set; } = 0;
         public int ToMasterPacketLossRate { get; internal set; } = 0;
 
-        private Queue<int> LatencyHistory = new(LatencyHistoryMaxCap);
         private Queue<int> NetworkJitterQueue = new(NetworkJitterQueueMaxCap);
         private Queue<bool> PacketReceiveQueue = new(PacketReceiveQueueMaxCap);
         private Dictionary<long, bool> PacketReceiveLookup = new(PacketReceiveQueueMaxCap);
@@ -373,7 +362,6 @@ public static class NetworkQualityManager
         private long HeartbeatStartIndex = -1;
         private int PacketLossCount = 0;
         private long LastReceivedTime = -1;
-        private const int LatencyHistoryMaxCap = 50;
         private const int NetworkJitterQueueMaxCap = 20;
         private const int PacketReceiveQueueMaxCap = 100;
     }
