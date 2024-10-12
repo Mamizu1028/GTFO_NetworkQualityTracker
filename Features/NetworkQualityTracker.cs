@@ -23,7 +23,7 @@ namespace Hikaria.NetworkQualityTracker.Features
 
         public override bool InlineSettingsIntoParentMenu => true;
 
-        public static ILocalizationService LocalizationService { get; private set; }
+        public static new ILocalizationService Localization { get; set; }
 
         #region FeatureSettings
         [FeatureConfig]
@@ -211,7 +211,6 @@ namespace Hikaria.NetworkQualityTracker.Features
         #region FeatureMethods
         public override void Init()
         {
-            LocalizationService = Localization;
             LoaderWrapper.ClassInjector.RegisterTypeInIl2Cpp<NetworkQualityUpdater>();
             NetworkQualityManager.Setup();
         }

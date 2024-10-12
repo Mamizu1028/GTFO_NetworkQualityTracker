@@ -6,8 +6,10 @@ using TheArchive.Utilities;
 using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
-using static Hikaria.NetworkQualityTracker.Utils.Utils;
+using static Hikaria.NetworkQualityTracker.Utility.Utils;
 using Version = Hikaria.Core.Version;
+using NQT = Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
+
 
 namespace Hikaria.NetworkQualityTracker.Managers;
 
@@ -141,6 +143,11 @@ public static class NetworkQualityManager
         }
         if (player.IsLocal)
         {
+            foreach (var text2 in PageLoadoutQualityTextMeshes.Values)
+            {
+                text2.SetText(string.Empty);
+                text2.ForceMeshUpdate();
+            }
             WatermarkQualityTextMesh.SetText(string.Empty);
             WatermarkQualityTextMesh.ForceMeshUpdate();
             NetworkQualityDataLookup.Clear();
@@ -307,16 +314,16 @@ public static class NetworkQualityManager
 
         public void GetToLocalReportText(out string toLocalLatencyText, out string toLocalJitterText, out string toLocalPacketLossRateText)
         {
-            toLocalLatencyText = LocalizationService.Format(2, $"<{ToLocalLatencyColorHexString}>{$"{ToLocalLatency}ms"}</color>");
-            toLocalJitterText = LocalizationService.Format(3, $"<{ToLocalNetworkJitterColorHexString}>{$"{ToLocalNetworkJitter}ms"}</color>");
-            toLocalPacketLossRateText = LocalizationService.Format(4, $"<{ToLocalPacketLossColorHexString}>{$"{ToLocalPacketLossRate}%"}</color>");
+            toLocalLatencyText = NQT.Localization.Format(2, $"<{ToLocalLatencyColorHexString}>{$"{ToLocalLatency}ms"}</color>");
+            toLocalJitterText = NQT.Localization.Format(3, $"<{ToLocalNetworkJitterColorHexString}>{$"{ToLocalNetworkJitter}ms"}</color>");
+            toLocalPacketLossRateText = NQT.Localization.Format(4, $"<{ToLocalPacketLossColorHexString}>{$"{ToLocalPacketLossRate}%"}</color>");
         }
 
         public void GetToMasterReportText(out string toMasterLatencyText, out string toMasterJitterText, out string toMasterPacketLossRateText)
         {
-            toMasterLatencyText = LocalizationService.Format(2, $"<{ToMasterLatencyColorHexString}>{(!IsMasterHasHeartbeat ? LocalizationService.Get(1) : $"{ToMasterLatency}ms")}</color>");
-            toMasterJitterText = LocalizationService.Format(3, $"<{ToMasterNetworkJitterColorHexString}>{(!IsMasterHasHeartbeat ? LocalizationService.Get(1) : $"{ToMasterNetworkJitter}ms")}</color>");
-            toMasterPacketLossRateText = LocalizationService.Format(4, $"<{ToMasterPacketLossColorHexString}>{(!IsMasterHasHeartbeat ? LocalizationService.Get(1) : $"{ToMasterPacketLossRate}%")}</color>");
+            toMasterLatencyText = NQT.Localization.Format(2, $"<{ToMasterLatencyColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterLatency}ms")}</color>");
+            toMasterJitterText = NQT.Localization.Format(3, $"<{ToMasterNetworkJitterColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterNetworkJitter}ms")}</color>");
+            toMasterPacketLossRateText = NQT.Localization.Format(4, $"<{ToMasterPacketLossColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterPacketLossRate}%")}</color>");
         }
 
         public pToMasterNetworkQualityReport GetToMasterReportData()

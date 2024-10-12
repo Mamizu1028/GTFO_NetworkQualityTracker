@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Hikaria.NetworkQualityTracker.Utils
+namespace Hikaria.NetworkQualityTracker.Utility
 {
     internal class Utils
     {
