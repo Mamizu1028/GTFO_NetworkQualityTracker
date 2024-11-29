@@ -1,5 +1,6 @@
 ﻿using TheArchive.Core;
 using TheArchive.Core.Attributes;
+using TheArchive.Core.FeaturesAPI;
 using TheArchive.Core.Localization;
 
 namespace Hikaria.NetworkQualityTracker;
@@ -34,11 +35,9 @@ public class EntryPoint : IArchiveModule
 
     public ArchiveLegacyPatcher Patcher { get; set; }
 
-    public string ModuleGroup => "Network Quality Tracker";
-
-    public Dictionary<Language, string> ModuleGroupLanguages => new()
+    public string ModuleGroup => FeatureGroups.GetOrCreateModuleGroup("Network Quality Tracker", new()
     {
         { Language.Chinese, "网络质量跟踪器" },
         { Language.English, "Network Quality Tracker" }
-    };
+    });
 }
