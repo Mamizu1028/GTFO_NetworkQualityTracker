@@ -55,7 +55,7 @@ public static class NetworkQualityManager
     {
         CoreAPI.OnPlayerModsSynced += OnPlayerModsSynced;
         GameEventAPI.OnMasterChanged += OnMasterChanged;
-        GameEventAPI.OnPlayerSlotChanged += OnPlayerSlotChanged;
+        GameEventAPI.OnPlayerEvent += OnPlayerEvent;
         s_HeartbeatAction = SNetExt_BroadcastAction<pHeartbeat>.Create(typeof(pHeartbeat).FullName, OnReceiveHeartbeat, HeartbeatListenerFilter, SNet_ChannelType.GameNonCritical);
         s_ToMasterNetworkQualityReportAction = SNetExt_BroadcastAction<pToMasterNetworkQualityReport>.Create(typeof(pToMasterNetworkQualityReport).FullName, OnReceiveNetworkQualityReport, HeartbeatListenerFilter, SNet_ChannelType.GameNonCritical);
         s_HeartbeatAckPacket = SNetExt_Packet<pHeartbeatAck>.Create(typeof(pHeartbeatAck).FullName, OnReceiveHeartbeatAck, null, false, SNet_ChannelType.GameNonCritical);
@@ -63,9 +63,9 @@ public static class NetworkQualityManager
         s_HeartbeatAction.OnPlayerRemovedFromListeners += UnregisterListener;
     }
 
-    private static void OnPlayerSlotChanged(SNet_Player player, SNet_SlotType type, SNet_SlotHandleType handle, int index)
+    private static void OnPlayerEvent(SNet_Player player, SNet_PlayerEvent playerEvent, SNet_PlayerEventReason reason)
     {
-        if (handle == SNet_SlotHandleType.Assign || handle == SNet_SlotHandleType.Set)
+        if (playerEvent == SNet_PlayerEvent.PlayerIsSynced)
         {
             PlayerSlotIndexLookup[player.Lookup] = player.PlayerSlot?.index ?? -1;
         }
