@@ -2,7 +2,9 @@
 using Hikaria.NetworkQualityTracker.Handlers;
 using Hikaria.NetworkQualityTracker.Managers;
 using SNetwork;
-using TheArchive.Core.Attributes;
+using TheArchive.Core.Attributes.Feature;
+using TheArchive.Core.Attributes.Feature.Members;
+using TheArchive.Core.Attributes.Feature.Patches;
 using TheArchive.Core.Attributes.Feature.Settings;
 using TheArchive.Core.FeaturesAPI;
 using TheArchive.Core.Localization;
@@ -18,8 +20,6 @@ namespace Hikaria.NetworkQualityTracker.Features
     public class NetworkQualityTracker : Feature
     {
         public override string Name => "Network Quality Tracker";
-
-        public override FeatureGroup Group => ModuleGroup;
 
         public override bool InlineSettingsIntoParentMenu => true;
 
@@ -183,7 +183,7 @@ namespace Hikaria.NetworkQualityTracker.Features
 
                     foreach (var bar in CM_PageLoadout.Current.m_playerLobbyBars)
                     {
-                        int index = bar.PlayerSlotIndex;
+                        int index = bar.PlayerSlotIndex + 1;
                         if (!PageLoadoutQualityTextMeshes.ContainsKey(index))
                         {
                             var textMesh = UnityEngine.Object.Instantiate(WatermarkTextPrefab, bar.m_hasPlayerRoot.transform, false);

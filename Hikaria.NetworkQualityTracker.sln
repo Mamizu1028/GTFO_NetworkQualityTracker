@@ -3,7 +3,20 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hikaria.NetworkQualityTracker", "Hikaria.NetworkQualityTracker.csproj", "{AB13E70E-ED41-4205-A027-CCACDF61DDEB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hikaria.NetworkQualityTracker", "Hikaria.NetworkQualityTracker\Hikaria.NetworkQualityTracker.csproj", "{AB13E70E-ED41-4205-A027-CCACDF61DDEB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		Dependencies.props = Dependencies.props
+		GameFolder.props = GameFolder.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Localization", "Localization", "{C9507217-63CD-4C82-91D5-404F02B04309}"
+	ProjectSection(SolutionItems) = preProject
+		Localization\NetworkQualityTracker_Localization.json = Localization\NetworkQualityTracker_Localization.json
+		Localization\_Hikaria.NetworkQualityTracker_ModuleLocalization.json = Localization\_Hikaria.NetworkQualityTracker_ModuleLocalization.json
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

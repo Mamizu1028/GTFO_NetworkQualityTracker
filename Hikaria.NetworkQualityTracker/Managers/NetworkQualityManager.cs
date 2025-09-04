@@ -49,7 +49,7 @@ public static class NetworkQualityManager
         }
     }
 
-    private static readonly Version Miniver = new("1.2.0");
+    private static readonly Version Minver = new("1.2.0");
 
     public static void Setup()
     {
@@ -67,7 +67,14 @@ public static class NetworkQualityManager
     {
         if (playerEvent == SNet_PlayerEvent.PlayerIsSynced)
         {
-            PlayerSlotIndexLookup[player.Lookup] = player.PlayerSlot?.index ?? -1;
+            PlayerSlotIndexLookup[player.Lookup] = player.PlayerSlotIndex() + 1;
+            if (player.IsLocal)
+            {
+                foreach (var p in SNet.LobbyPlayers)
+                {
+                    PlayerSlotIndexLookup[p.Lookup] = p.PlayerSlotIndex() + 1;
+                }
+            }
         }
     }
 
@@ -75,7 +82,7 @@ public static class NetworkQualityManager
     {
         if (player.IsMaster)
         {
-            IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, Miniver);
+            IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, Minver);
             if (!IsMasterHasHeartbeat)
             {
                 WatermarkQualityTextMesh.SetText(string.Empty);
@@ -87,7 +94,7 @@ public static class NetworkQualityManager
 
     private static void OnMasterChanged()
     {
-        IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(SNet.Master, PluginInfo.GUID, Miniver);
+        IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(SNet.Master, PluginInfo.GUID, Minver);
         if (!IsMasterHasHeartbeat)
         {
             WatermarkQualityTextMesh.SetText(string.Empty);
@@ -102,7 +109,7 @@ public static class NetworkQualityManager
 
     private static bool HeartbeatListenerFilter(SNet_Player player)
     {
-        return CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, Miniver);
+        return CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, Minver);
     }
 
     private static void OnReceiveHeartbeat(ulong senderID, pHeartbeat data)
@@ -140,6 +147,7 @@ public static class NetworkQualityManager
         {
             text.SetText(string.Empty);
             text.ForceMeshUpdate();
+            PlayerSlotIndexLookup.Remove(player.Lookup);
         }
         if (player.IsLocal)
         {
@@ -153,6 +161,7 @@ public static class NetworkQualityManager
             NetworkQualityDataLookup.Clear();
             HeartbeatSendTimeLookup.Clear();
             HeartbeatSendIndex = 0L;
+            PlayerSlotIndexLookup.Clear();
             return;
         }
 

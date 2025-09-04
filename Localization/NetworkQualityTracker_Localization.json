@@ -1,0 +1,371 @@
+{
+  "Internal": {
+    "FeatureSettingsTexts": {
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker.Name": {
+        "FName": {
+          "English": "Network Quality Tracker",
+          "Chinese": "网络质量跟踪器",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+NetworkLatencySetting.ShowInWatermark": {
+        "FSDisplayName": {
+          "English": "Show In Watermark",
+          "Chinese": "在水印中显示",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+NetworkLatencySetting.ShowInPageLoadout": {
+        "FSDisplayName": {
+          "English": "Show In Page Loadout",
+          "Chinese": "在大厅界面显示",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+ShowInfoSetting.ShowToLocalLatency": {
+        "FSDisplayName": {
+          "English": "Show To Local Latency",
+          "Chinese": "显示到本地延迟",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        },
+        "FSHeader": {
+          "English": "Info Settings",
+          "Chinese": "信息设置",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+ShowInfoSetting.ShowToLocalNetworkJitter": {
+        "FSDisplayName": {
+          "English": "Show To Local Network Jitter",
+          "Chinese": "显示到本地网络抖动",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+ShowInfoSetting.ShowToLocalPacketLoss": {
+        "FSDisplayName": {
+          "English": "Show To Local Packet Loss Ratio",
+          "Chinese": "显示到本地丢包率",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+ShowInfoSetting.ShowToMasterLatency": {
+        "FSDisplayName": {
+          "English": "Show To Master Latency",
+          "Chinese": "显示到主机延迟",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+ShowInfoSetting.ShowToMasterNetworkJitter": {
+        "FSDisplayName": {
+          "English": "Show To Master Network Jitter",
+          "Chinese": "显示到主机网络抖动",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+ShowInfoSetting.ShowToMasterPacketLoss": {
+        "FSDisplayName": {
+          "English": "Show To Master Packet Loss",
+          "Chinese": "显示到主机丢包率",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+PositionSetting.WatermarkOffsetX": {
+        "FSDisplayName": {
+          "English": "Watermark Offset X",
+          "Chinese": "水印水平偏移量",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        },
+        "FSDescription": {
+          "English": "Unit: pixel",
+          "Chinese": "单位: 像素",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        },
+        "FSHeader": {
+          "English": "Watermark Position",
+          "Chinese": "水印位置",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+PositionSetting.WatermarkOffsetY": {
+        "FSDisplayName": {
+          "English": "Watermark Offset Y",
+          "Chinese": "水印垂直偏移量",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        },
+        "FSDescription": {
+          "English": "Unit: pixel",
+          "Chinese": "单位: 像素",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+PositionSetting.PageLoadoutOffsetX": {
+        "FSDisplayName": {
+          "English": "Page Loadout Offset X",
+          "Chinese": "大厅水平偏移量",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        },
+        "FSDescription": {
+          "English": "Unit: pixel",
+          "Chinese": "单位: 像素",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        },
+        "FSHeader": {
+          "English": "Page Loadout Position",
+          "Chinese": "大厅详情页位置",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      },
+      "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker+PositionSetting.PageLoadoutOffsetY": {
+        "FSDisplayName": {
+          "English": "Page Loadout Offset Y",
+          "Chinese": "大厅垂直偏移量",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        },
+        "FSDescription": {
+          "English": "Unit: pixel",
+          "Chinese": "单位: 像素",
+          "French": null,
+          "Italian": null,
+          "German": null,
+          "Spanish": null,
+          "Russian": null,
+          "Portuguese_Brazil": null,
+          "Polish": null,
+          "Japanese": null,
+          "Korean": null
+        }
+      }
+    },
+    "FeatureSettingsEnumTexts": {},
+    "ExtraTexts": [
+      {
+        "UntranslatedText": "Unknown",
+        "Description": "",
+        "ID": 1,
+        "Languages": {
+          "English": "Unknown",
+          "Chinese": "未知"
+        }
+      },
+      {
+        "UntranslatedText": "Latency: {0}",
+        "Description": "",
+        "ID": 2,
+        "Languages": {
+          "English": "Latency: {0}",
+          "Chinese": "延迟: {0}"
+        }
+      },
+      {
+        "UntranslatedText": "Jitter: {0}",
+        "Description": "",
+        "ID": 3,
+        "Languages": {
+          "English": "Jitter: {0}",
+          "Chinese": "抖动: {0}"
+        }
+      },
+      {
+        "UntranslatedText": "PacketLossRate: {0}",
+        "Description": "",
+        "ID": 4,
+        "Languages": {
+          "English": "PLR: {0}",
+          "Chinese": "丢包率: {0}"
+        }
+      },
+      {
+        "UntranslatedText": "与本地已断开连接",
+        "Description": "",
+        "ID": 5,
+        "Languages": {
+          "English": "Disconnected",
+          "Chinese": "与本地已断开连接"
+        }
+      },
+      {
+        "UntranslatedText": "与主机已断开连接",
+        "Description": "",
+        "ID": 6,
+        "Languages": {
+          "English": "Disconnected",
+          "Chinese": "与主机已断开连接"
+        }
+      },
+      {
+        "UntranslatedText": "与本地连接质量",
+        "Description": "",
+        "ID": 7,
+        "Languages": {
+          "English": "To Local",
+          "Chinese": "与本地连接质量"
+        }
+      },
+      {
+        "UntranslatedText": "与主机连接质量",
+        "Description": "",
+        "ID": 8,
+        "Languages": {
+          "English": "To Host",
+          "Chinese": "与主机连接质量"
+        }
+      }
+    ]
+  },
+  "External": {
+    "ExternalFeatureSettingsTexts": {},
+    "ExternalEnumTexts": {}
+  }
+}
