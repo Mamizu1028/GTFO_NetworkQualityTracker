@@ -75,9 +75,9 @@ public class NetworkQualityUpdater : MonoBehaviour
                     {
                         data.GetToLocalReportText(out var toLocalLatencyText, out var toLocalJitterText, out var toLocalPacketLossRateText);
 
-                        sb.AppendLine(NQT.Localization.Get(7));
+                        sb.AppendLine(NQT.Localization.GetById(7));
                         if (!data.IsAlive)
-                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>{NQT.Localization.Get(5)}</color>");
+                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>{NQT.Localization.GetById(5)}</color>");
                         if (ShowToLocalLatency)
                             sb.AppendLine($"{toLocalLatencyText}");
                         if (ShowToLocalNetworkJitter)
@@ -89,9 +89,9 @@ public class NetworkQualityUpdater : MonoBehaviour
 
                     if (NetworkQualityManager.IsMasterHasHeartbeat && !SNet.IsMaster && !data.Owner.IsMaster && AnyShowToMaster)
                     {
-                        sb.AppendLine(NQT.Localization.Get(8));
+                        sb.AppendLine(NQT.Localization.GetById(8));
                         if (!data.IsToMasterAlive)
-                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>{NQT.Localization.Get(6)}</color>");
+                            sb.AppendLine($"<{NetworkQualityManager.COLOR_RED.ToHexString()}>{NQT.Localization.GetById(6)}</color>");
                         if (ShowToMasterLatency)
                             sb.AppendLine($"{toMasterLatencyText}");
                         if (ShowToMasterNetworkJitter)

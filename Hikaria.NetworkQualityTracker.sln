@@ -14,8 +14,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Localization", "Localization", "{C9507217-63CD-4C82-91D5-404F02B04309}"
 	ProjectSection(SolutionItems) = preProject
-		Localization\NetworkQualityTracker_Localization.json = Localization\NetworkQualityTracker_Localization.json
-		Localization\_Hikaria.NetworkQualityTracker_ModuleLocalization.json = Localization\_Hikaria.NetworkQualityTracker_ModuleLocalization.json
+		Localization\Feature_NetworkQualityTracker_Localization.json = Localization\Feature_NetworkQualityTracker_Localization.json
+		Localization\Module_Hikaria.NetworkQualityTracker_Localization.json = Localization\Module_Hikaria.NetworkQualityTracker_Localization.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Definitions", "Definitions", "{AE9A6FB9-9602-4224-9160-86DB70420B24}"
+	ProjectSection(SolutionItems) = preProject
+		Definitions\Module_Hikaria.NetworkQualityTracker_Group_Definition.json = Definitions\Module_Hikaria.NetworkQualityTracker_Group_Definition.json
 	EndProjectSection
 EndProject
 Global

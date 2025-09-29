@@ -7,7 +7,6 @@ using TMPro;
 using UnityEngine;
 using static Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 using static Hikaria.NetworkQualityTracker.Utility.Utils;
-using Version = Hikaria.Core.Version;
 using NQT = Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker;
 
 
@@ -49,13 +48,11 @@ public static class NetworkQualityManager
         }
     }
 
-    private static readonly Version Minver = new("1.2.0");
-
     public static void Setup()
     {
         CoreAPI.OnPlayerModsSynced += OnPlayerModsSynced;
-        GameEventAPI.OnMasterChanged += OnMasterChanged;
-        GameEventAPI.OnPlayerEvent += OnPlayerEvent;
+        SNetEventAPI.OnMasterChanged += OnMasterChanged;
+        SNetEventAPI.OnPlayerEvent += OnPlayerEvent;
         s_HeartbeatAction = SNetExt_BroadcastAction<pHeartbeat>.Create(typeof(pHeartbeat).FullName, OnReceiveHeartbeat, HeartbeatListenerFilter, SNet_ChannelType.GameNonCritical);
         s_ToMasterNetworkQualityReportAction = SNetExt_BroadcastAction<pToMasterNetworkQualityReport>.Create(typeof(pToMasterNetworkQualityReport).FullName, OnReceiveNetworkQualityReport, HeartbeatListenerFilter, SNet_ChannelType.GameNonCritical);
         s_HeartbeatAckPacket = SNetExt_Packet<pHeartbeatAck>.Create(typeof(pHeartbeatAck).FullName, OnReceiveHeartbeatAck, null, false, SNet_ChannelType.GameNonCritical);
@@ -82,7 +79,7 @@ public static class NetworkQualityManager
     {
         if (player.IsMaster)
         {
-            IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, Minver);
+            IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, "2.x.x");
             if (!IsMasterHasHeartbeat)
             {
                 WatermarkQualityTextMesh.SetText(string.Empty);
@@ -94,7 +91,7 @@ public static class NetworkQualityManager
 
     private static void OnMasterChanged()
     {
-        IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(SNet.Master, PluginInfo.GUID, Minver);
+        IsMasterHasHeartbeat = CoreAPI.IsPlayerInstalledMod(SNet.Master, PluginInfo.GUID, "2.x.x");
         if (!IsMasterHasHeartbeat)
         {
             WatermarkQualityTextMesh.SetText(string.Empty);
@@ -109,7 +106,7 @@ public static class NetworkQualityManager
 
     private static bool HeartbeatListenerFilter(SNet_Player player)
     {
-        return CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, Minver);
+        return CoreAPI.IsPlayerInstalledMod(player, PluginInfo.GUID, "2.x.x");
     }
 
     private static void OnReceiveHeartbeat(ulong senderID, pHeartbeat data)
@@ -323,16 +320,16 @@ public static class NetworkQualityManager
 
         public void GetToLocalReportText(out string toLocalLatencyText, out string toLocalJitterText, out string toLocalPacketLossRateText)
         {
-            toLocalLatencyText = NQT.Localization.Format(2, $"<{ToLocalLatencyColorHexString}>{$"{ToLocalLatency}ms"}</color>");
-            toLocalJitterText = NQT.Localization.Format(3, $"<{ToLocalNetworkJitterColorHexString}>{$"{ToLocalNetworkJitter}ms"}</color>");
-            toLocalPacketLossRateText = NQT.Localization.Format(4, $"<{ToLocalPacketLossColorHexString}>{$"{ToLocalPacketLossRate}%"}</color>");
+            toLocalLatencyText = NQT.Localization.Format(2, "Latency: {0}", $"<{ToLocalLatencyColorHexString}>{$"{ToLocalLatency}ms"}</color>");
+            toLocalJitterText = NQT.Localization.Format(3, "Jitter: {0}", $"<{ToLocalNetworkJitterColorHexString}>{$"{ToLocalNetworkJitter}ms"}</color>");
+            toLocalPacketLossRateText = NQT.Localization.Format(4, "PLR: {0}", $"<{ToLocalPacketLossColorHexString}>{$"{ToLocalPacketLossRate}%"}</color>");
         }
 
         public void GetToMasterReportText(out string toMasterLatencyText, out string toMasterJitterText, out string toMasterPacketLossRateText)
         {
-            toMasterLatencyText = NQT.Localization.Format(2, $"<{ToMasterLatencyColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterLatency}ms")}</color>");
-            toMasterJitterText = NQT.Localization.Format(3, $"<{ToMasterNetworkJitterColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterNetworkJitter}ms")}</color>");
-            toMasterPacketLossRateText = NQT.Localization.Format(4, $"<{ToMasterPacketLossColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterPacketLossRate}%")}</color>");
+            toMasterLatencyText = NQT.Localization.Format(2, "Latency: {0}", $"<{ToMasterLatencyColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterLatency}ms")}</color>");
+            toMasterJitterText = NQT.Localization.Format(3, "Jitter: {0}", $"<{ToMasterNetworkJitterColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterNetworkJitter}ms")}</color>");
+            toMasterPacketLossRateText = NQT.Localization.Format(4, "PLR: {0}", $"<{ToMasterPacketLossColorHexString}>{(!IsMasterHasHeartbeat ? NQT.Localization.Get(1) : $"{ToMasterPacketLossRate}%")}</color>");
         }
 
         public pToMasterNetworkQualityReport GetToMasterReportData()

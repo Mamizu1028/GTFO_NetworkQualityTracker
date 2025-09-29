@@ -6,5 +6,5 @@ public static class PluginInfo
 
     public const string NAME = "NetworkQualityTracker";
 
-    public const string VERSION = "1.2.2";
+    public const string VERSION = "2.0.0";
 }

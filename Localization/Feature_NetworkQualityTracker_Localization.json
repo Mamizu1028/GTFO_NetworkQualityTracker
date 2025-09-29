@@ -1,6 +1,6 @@
-{
+﻿{
   "Internal": {
-    "FeatureSettingsTexts": {
+    "FeatureSettingTexts": {
       "Hikaria.NetworkQualityTracker.Features.NetworkQualityTracker.Name": {
         "FName": {
           "English": "Network Quality Tracker",
@@ -288,84 +288,68 @@
         }
       }
     },
-    "FeatureSettingsEnumTexts": {},
-    "ExtraTexts": [
-      {
-        "UntranslatedText": "Unknown",
-        "Description": "",
-        "ID": 1,
-        "Languages": {
-          "English": "Unknown",
-          "Chinese": "未知"
-        }
-      },
-      {
-        "UntranslatedText": "Latency: {0}",
-        "Description": "",
-        "ID": 2,
-        "Languages": {
-          "English": "Latency: {0}",
-          "Chinese": "延迟: {0}"
-        }
-      },
-      {
-        "UntranslatedText": "Jitter: {0}",
-        "Description": "",
-        "ID": 3,
-        "Languages": {
-          "English": "Jitter: {0}",
-          "Chinese": "抖动: {0}"
-        }
-      },
-      {
-        "UntranslatedText": "PacketLossRate: {0}",
-        "Description": "",
-        "ID": 4,
-        "Languages": {
-          "English": "PLR: {0}",
-          "Chinese": "丢包率: {0}"
-        }
-      },
-      {
-        "UntranslatedText": "与本地已断开连接",
-        "Description": "",
-        "ID": 5,
-        "Languages": {
-          "English": "Disconnected",
-          "Chinese": "与本地已断开连接"
-        }
-      },
-      {
-        "UntranslatedText": "与主机已断开连接",
-        "Description": "",
-        "ID": 6,
-        "Languages": {
-          "English": "Disconnected",
-          "Chinese": "与主机已断开连接"
-        }
-      },
-      {
-        "UntranslatedText": "与本地连接质量",
-        "Description": "",
-        "ID": 7,
-        "Languages": {
-          "English": "To Local",
-          "Chinese": "与本地连接质量"
-        }
-      },
-      {
-        "UntranslatedText": "与主机连接质量",
-        "Description": "",
-        "ID": 8,
-        "Languages": {
-          "English": "To Host",
-          "Chinese": "与主机连接质量"
-        }
-      }
-    ]
+    "EnumTexts": {}
   },
   "External": {
-    "ExternalFeatureSettingsTexts": {},
-    "ExternalEnumTexts": {}
+    "FeatureSettingTexts": {},
+    "EnumTexts": {}
+  },
+  "GenericTexts": {
+    "1": {
+      "Comment": "Unknown",
+      "Data": {
+        "English": "Unknown",
+        "Chinese": "未知"
+      }
+    },
+    "2": {
+      "Comment": "Latency: {0}",
+      "Data": {
+        "English": "Latency: {0}",
+        "Chinese": "延迟: {0}"
+      }
+    },
+    "3": {
+      "Comment": "Jitter: {0}",
+      "Data": {
+        "English": "Jitter: {0}",
+        "Chinese": "抖动: {0}"
+      }
+    },
+    "4": {
+      "Comment": "PacketLossRate: {0}",
+      "Data": {
+        "English": "PLR: {0}",
+        "Chinese": "丢包率: {0}"
+      }
+    },
+    "5": {
+      "Comment": "与本地已断开连接",
+      "Data": {
+        "English": "Disconnected",
+        "Chinese": "与本地已断开连接"
+      }
+    },
+    "6": {
+      "Comment": "与主机已断开连接",
+      "Data": {
+        "English": "Disconnected",
+        "Chinese": "与主机已断开连接"
+      }
+    },
+    "7": {
+      "Comment": "与本地连接质量",
+      "Data": {
+        "English": "To Local",
+        "Chinese": "与本地连接质量"
+      }
+    },
+    "8": {
+      "Comment": "与主机连接质量",
+      "Data": {
+        "English": "To Host",
+        "Chinese": "与主机连接质量"
+      }
+    }
   }
 }

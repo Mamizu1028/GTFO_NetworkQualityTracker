@@ -1,0 +1,34 @@
+{
+    "ModuleGroup": {
+        "LocalizationData": {
+            "DisplayName": {
+                "English": "Network Quality Tracker",
+                "Chinese": "网络质量追踪器",
+                "French": null,
+                "Italian": null,
+                "German": null,
+                "Spanish": null,
+                "Russian": null,
+                "Portuguese_Brazil": null,
+                "Polish": null,
+                "Japanese": null,
+                "Korean": null
+            },
+            "Description": {
+                "English": null,
+                "Chinese": null,
+                "French": null,
+                "Italian": null,
+                "German": null,
+                "Spanish": null,
+                "Russian": null,
+                "Portuguese_Brazil": null,
+                "Polish": null,
+                "Japanese": null,
+                "Korean": null
+            }
+        },
+        "SubGroups": []
+    },
+    "TopLevelGroups": []
+}

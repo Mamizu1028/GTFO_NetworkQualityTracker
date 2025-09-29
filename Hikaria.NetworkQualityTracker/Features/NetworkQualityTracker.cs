@@ -168,7 +168,7 @@ namespace Hikaria.NetworkQualityTracker.Features
         {
             private static bool IsSetup;
 
-            private static void Postfix()
+            private static void Postfix(PUI_Watermark __instance)
             {
                 if (!IsSetup)
                 {
@@ -204,6 +204,11 @@ namespace Hikaria.NetworkQualityTracker.Features
 
                     IsSetup = true;
                 }
+
+                // 水印文本会被LEGACY.dll篡改，某些Rundown作者特别喜欢用多行水印
+                var splitText = __instance.m_watermarkText.text.Split('\n');
+                __instance.m_watermarkText.text = splitText[^1];
+                __instance.m_watermarkText.ForceMeshUpdate();
             }
         }
         #endregion
