@@ -163,7 +163,7 @@ namespace Hikaria.NetworkQualityTracker.Features
             }
         }
 
-        [ArchivePatch(typeof(PUI_Watermark), nameof(PUI_Watermark.UpdateWatermark))]
+        [ArchivePatch(typeof(PUI_Watermark), nameof(PUI_Watermark.UpdateWatermark), priority: -10000)]
         private class PUI_Watermark__UpdateWatermark__Patch
         {
             private static bool IsSetup;
